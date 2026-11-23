@@ -16,7 +16,7 @@ A web app that replaces the Excel workbooks HR uses to manage salaries for about
 
 - **Frontend:** React, TypeScript (Stage 7)
 - **Backend:** Node.js, TypeScript
-- **Database:** PostgreSQL, accessed through Drizzle ORM (Stage 1)
+- **Database:** PostgreSQL, accessed through Prisma ORM (Stage 1)
 - **Tests:** Vitest
 - **Monorepo:** npm workspaces
 

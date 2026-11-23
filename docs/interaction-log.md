@@ -95,3 +95,18 @@ A running record of requests, decisions, and what was built in each step. Newest
 - Verified both URLs connect (`salary ok, 18.6` and `salary_test ok, 18.6`).
 
 **Stage 0 status:** Every criterion is met except a verified Docker Compose run. The local server stands in for the containers. The compose file still needs to be tested once Docker is available.
+
+---
+
+## 2026-11-23 — ORM decision: Prisma
+
+**User question:** Did the assignment ask for Drizzle?
+**Answer:** No. The brief only asks for a relational database of our choice. Drizzle was my default, listed in the plan, not a requirement.
+
+**User decision:** Use Prisma instead.
+
+**Actions:**
+
+- Updated `docs/plan.md` (Stage 1 scope and default decisions) and `README.md` to name Prisma.
+- Noted the trade-off: Prisma has no built-in median, so median and percentile queries use typed raw SQL and are covered by integration tests.
+- No code changed. Prisma is installed in Stage 1, when the schema is written.
