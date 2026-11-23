@@ -25,13 +25,20 @@ A web app that replaces the Excel workbooks HR uses to manage salaries for about
 ```
 apps/
   api/          Backend HTTP service (Node.js, TypeScript)
+  web/          React single-page app (Vite, Mantine, TypeScript)
 packages/
-  shared/       Types and constants shared across apps
+  shared/       API contract types shared by the API and the web app
 docs/           Requirements, plan, and interaction log
 docker-compose.yml   Local PostgreSQL (development and test)
 ```
 
-The web app (`apps/web`) is added in Stage 7.
+### Web app
+
+`npm run dev` in `apps/web` starts the Vite dev server on port 5173. It forwards `/api` to the API on port 4000 (override with `VITE_API_TARGET`), so no CORS setup is needed in development.
+
+Sign in with the HR username and password from `.env`. The session lasts for the browser tab only: reloading keeps you signed in, and closing the tab signs you out.
+
+The API client (`src/api/client.ts`) is typed with the shared contract. A change to a response shape is a compile error in the web app.
 
 ## Getting started
 

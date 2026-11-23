@@ -395,3 +395,50 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 
 - The seed's FX rates and pay bands are illustrative. HR needs a way to maintain them. This is still the main open decision before deployment.
 - Import writes are not timed at scale yet.
+
+---
+
+## 2026-11-23 — Stage 7: Web Application Foundation
+
+**User request:** Start Stage 7.
+
+**Design decisions:**
+
+- **Shared contract.** The API response and request types moved into `packages/shared`. The API services and the web app now import the same definitions. Money stays as decimal strings.
+- **Typed client.** `apps/web/src/api/client.ts` has one typed method per endpoint. Each method's inputs and outputs come from the shared contract.
+- **Session in the tab only.** The Basic-auth token lives in `sessionStorage`. A reload keeps the user signed in, and closing the tab signs them out. Storage access is wrapped in try/catch, so a blocked storage still works.
+- **Sign-in checks the API.** Signing in calls `GET /api/employees?pageSize=1` with the credentials. A wrong password gets a clear message and no session.
+- **Dev proxy.** Vite forwards `/api` and `/health` to the API, so the browser sees one origin. No CORS is needed in development. Production hosting is decided in Stage 10.
+- **Mantine AppShell.** The navigation collapses behind a burger on phone widths.
+- **Placeholders.** Employees, Analytics, and Import and export are routed but show placeholders. Stages 8 and 9 build their screens.
+
+**What was built:**
+
+- `packages/shared/src/api-types.ts`: the contract. The three API services now import their types from it.
+- `apps/web`: Vite 7, React 19, React Router 7, Mantine 9, TypeScript.
+  - `api/client.ts`: the typed client and `ApiError`. Non-JSON error bodies, such as an HTML page from a proxy, produce a typed error rather than a parse crash.
+  - `auth/AuthContext.tsx`: sign-in, sign-out, and session storage.
+  - `layout/AppLayout.tsx`: header, navigation, and burger.
+  - `pages/`: sign-in page, placeholders, and not-found page.
+  - `App.tsx`: signed-out visitors see the sign-in page at any address. Signing in keeps the address they opened.
+
+**Verification:**
+
+- Web tests: 19 pass. The client tests cover the Authorization header, query strings, JSON and CSV bodies, typed errors, and UTF-8 credentials. The app tests cover sign-in success and failure, session reload, sign-out, navigation, and not-found.
+- API tests after the refactor: 131 unit and 75 integration pass.
+- `npm run build` for the web app produces a 122 kB gzipped bundle. `npm run check` passes across all workspaces.
+- The Vite dev server returns 200 for the page and for the entry module.
+
+**Problems and fixes during the stage:**
+
+- The web devDependencies were never written to `package.json`, because the first install ran in the wrong place. They were reinstalled into the web workspace.
+- The API client threw a parse error on non-JSON error bodies. Fixed, with a test.
+- Test labels failed because Mantine adds an asterisk to required fields. The tests now match labels by pattern.
+- My commit command ran before the check had finished, and the check failed. I fixed the cause (an unused import left by the refactor), and the check passes.
+
+**Not verified in a browser:** these tests run in jsdom, so they don't check layout or the look of the screens. I have not opened the app in a real browser yet. I'll do that before the demo video.
+
+**Open decisions (unchanged):**
+
+- Maintaining FX rates and pay bands still has no screen or endpoint. This decision is needed before deployment.
+- Production hosting: serve the web app from the API, or enable CORS for a separate host. Decided in Stage 10.
