@@ -4,7 +4,7 @@
 
 ## 1. Goal
 
-Replace the Excel workbooks HR uses to track salaries for ~10,000 employees across multiple countries with a web app. The HR Manager should be able to maintain salary data in one place and answer questions such as *"What do we pay engineers in Germany versus India?"*, *"Which employees sit outside their level's pay band?"*, and *"What is the median base salary by department in USD?"*
+Replace the Excel workbooks HR uses to track salaries for ~10,000 employees across multiple countries with a web app. The HR Manager should be able to maintain salary data in one place and answer questions such as _"What do we pay engineers in Germany versus India?"_, _"Which employees sit outside their level's pay band?"_, and _"What is the median base salary by department in USD?"_
 
 ## 2. Users
 
@@ -12,32 +12,32 @@ One persona: the **HR Manager**. v1 has a single account. There are no roles or 
 
 ## 3. Scope and Features (v1)
 
-| # | Feature | Acceptance criteria |
-|---|---|---|
-| F1 | **Employee directory** | Paginated list of all employees. Search by name or ID. Filter by country, department, level, and status (active / leaving). Loads in under 1 second at 10,000 rows. |
-| F2 | **Employee profile and edit** | Create, view, and edit name, email, country, department, job title, level, start date, and status. Duplicate emails are rejected. |
-| F3 | **Salary records with history** | Each salary change is stored as a new record with an effective date and currency. The current salary is the latest effective record. Past records are never overwritten. |
-| F4 | **Pay bands** | Min and max per level per country. Employees outside their band are flagged in the list and in analytics. |
-| F5 | **Analytics dashboard** | Headcount and base salary (median, average, min, max) grouped by country, department, and level. All values convert to USD. Answers the questions in Section 1. |
-| F6 | **Currency handling** | Salaries are stored in local currency. USD conversion uses a manually maintained, dated FX rate table. |
-| F7 | **CSV import and export** | Import validates each row and reports row-level errors without failing the whole file. Export matches the current filter. This is the migration path off Excel. |
-| F8 | **Seed script** | Deterministically generates 10,000 employees across about 10 countries with realistic salary distributions. Reproducible from a fixed seed. |
-| F9 | **Change audit** | Every salary change records who, when, and the old and new values. |
+| #   | Feature                         | Acceptance criteria                                                                                                                                                      |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| F1  | **Employee directory**          | Paginated list of all employees. Search by name or ID. Filter by country, department, level, and status (active / leaving). Loads in under 1 second at 10,000 rows.      |
+| F2  | **Employee profile and edit**   | Create, view, and edit name, email, country, department, job title, level, start date, and status. Duplicate emails are rejected.                                        |
+| F3  | **Salary records with history** | Each salary change is stored as a new record with an effective date and currency. The current salary is the latest effective record. Past records are never overwritten. |
+| F4  | **Pay bands**                   | Min and max per level per country. Employees outside their band are flagged in the list and in analytics.                                                                |
+| F5  | **Analytics dashboard**         | Headcount and base salary (median, average, min, max) grouped by country, department, and level. All values convert to USD. Answers the questions in Section 1.          |
+| F6  | **Currency handling**           | Salaries are stored in local currency. USD conversion uses a manually maintained, dated FX rate table.                                                                   |
+| F7  | **CSV import and export**       | Import validates each row and reports row-level errors without failing the whole file. Export matches the current filter. This is the migration path off Excel.          |
+| F8  | **Seed script**                 | Deterministically generates 10,000 employees across about 10 countries with realistic salary distributions. Reproducible from a fixed seed.                              |
+| F9  | **Change audit**                | Every salary change records who, when, and the old and new values.                                                                                                       |
 
 **Non-functional:** Responsive web UI. PostgreSQL. Typed end to end (TypeScript). Unit and API tests run in under 30 seconds and do not depend on wall-clock time or randomness. Deployed on a hosted platform with a public URL.
 
 ## 4. Deliberately Out of Scope
 
-| Left out | Reasoning |
-|---|---|
-| **Payroll run, payslips, tax, bank payments** | Different system with different legal and integration needs. This tool manages the *data* that payroll consumes. |
-| **Multi-tenant orgs, SSO, fine-grained roles** | Single persona in the brief. Auth is a single HTTP basic-auth credential set by environment variable, which is enough to keep salary data off the open internet. Production would need SSO and RBAC. |
-| **Live FX feed** | Adds an external dependency and a data-sharing concern. Manual dated rates are auditable and sufficient for comparing pay across countries. |
-| **Bonus, equity, benefits, allowances** | Base salary drives the questions asked. The data model leaves room for a `salary_components` table later. |
-| **Statutory checks (minimum wage, pay equity law)** | Needs legal input per country. Showing a number is useful. Declaring compliance without legal review is not. |
-| **Predictive or recommended pay** | Descriptive analytics answer the questions asked. A model would need historical outcome data we do not have and would add fairness risk. |
-| **Employee self-service and mobile app** | Not in the persona. A responsive web UI covers an HR desktop workflow. |
-| **Field-level encryption and full GDPR program** | Important for production, not needed to demonstrate the product. Listed as a known gap in the README. |
+| Left out                                            | Reasoning                                                                                                                                                                                            |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Payroll run, payslips, tax, bank payments**       | Different system with different legal and integration needs. This tool manages the _data_ that payroll consumes.                                                                                     |
+| **Multi-tenant orgs, SSO, fine-grained roles**      | Single persona in the brief. Auth is a single HTTP basic-auth credential set by environment variable, which is enough to keep salary data off the open internet. Production would need SSO and RBAC. |
+| **Live FX feed**                                    | Adds an external dependency and a data-sharing concern. Manual dated rates are auditable and sufficient for comparing pay across countries.                                                          |
+| **Bonus, equity, benefits, allowances**             | Base salary drives the questions asked. The data model leaves room for a `salary_components` table later.                                                                                            |
+| **Statutory checks (minimum wage, pay equity law)** | Needs legal input per country. Showing a number is useful. Declaring compliance without legal review is not.                                                                                         |
+| **Predictive or recommended pay**                   | Descriptive analytics answer the questions asked. A model would need historical outcome data we do not have and would add fairness risk.                                                             |
+| **Employee self-service and mobile app**            | Not in the persona. A responsive web UI covers an HR desktop workflow.                                                                                                                               |
+| **Field-level encryption and full GDPR program**    | Important for production, not needed to demonstrate the product. Listed as a known gap in the README.                                                                                                |
 
 ## 5. Key Decisions and Trade-offs
 
