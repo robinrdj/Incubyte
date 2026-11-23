@@ -8,6 +8,7 @@ import type {
   SalaryInput,
   UpdateEmployeeInput,
 } from "../http/schemas.js";
+import type { SalaryDto, EmployeeDto, AuditEventDto, Page } from "@salary/shared";
 
 type Tx = Prisma.TransactionClient;
 
@@ -19,44 +20,6 @@ const employeeInclude = {
 } satisfies Prisma.EmployeeInclude;
 
 type EmployeeRow = Prisma.EmployeeGetPayload<{ include: typeof employeeInclude }>;
-
-// A type alias (not an interface) so it is assignable to Prisma's JSON input type for audit snapshots.
-export type SalaryDto = {
-  amount: string;
-  currency: string;
-  effectiveFrom: string;
-};
-
-export interface EmployeeDto {
-  id: string;
-  employeeCode: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  jobTitle: string;
-  startDate: string;
-  status: "ACTIVE" | "LEAVING";
-  country: { code: string; name: string };
-  department: { name: string };
-  level: { code: string; rank: number };
-  currentSalary: SalaryDto | null;
-}
-
-export interface AuditEventDto {
-  id: string;
-  action: string;
-  before: Prisma.JsonValue | null;
-  after: Prisma.JsonValue | null;
-  actor: string;
-  createdAt: string;
-}
-
-export interface Page<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
 
 /** YYYY-MM-DD for a date-only column. */
 const toDateOnly = (value: Date): string => value.toISOString().slice(0, 10);

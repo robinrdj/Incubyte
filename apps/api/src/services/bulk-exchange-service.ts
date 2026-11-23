@@ -17,23 +17,7 @@ import {
 import { formatMoney, type MinorUnits } from "../domain/money.js";
 import { HttpError } from "../http/errors.js";
 import { employeeWhere, type EmployeeFilters } from "./employee-filters.js";
-
-export interface ImportRowErrorDto {
-  line: number;
-  email: string;
-  messages: string[];
-}
-
-export interface ImportReportDto {
-  dryRun: boolean;
-  totalRows: number;
-  created: number;
-  updated: number;
-  unchanged: number;
-  rejected: number;
-  /** Every rejected row, in file order. Valid rows are applied even when others are rejected. */
-  errors: ImportRowErrorDto[];
-}
+import type { ImportRowErrorDto, ImportReportDto } from "@salary/shared";
 
 /** Database lookups are chunked so a 10,000-row import never sends one enormous IN list. */
 const CHUNK_SIZE = 1000;

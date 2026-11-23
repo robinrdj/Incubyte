@@ -5,54 +5,16 @@ import {
   type CompensationSummary,
 } from "../domain/compensation.js";
 import { REPORTING_CURRENCY, toReportingCurrency, type FxRates } from "../domain/fx.js";
-import { compaRatio, bandPosition, type BandPosition } from "../domain/pay-band.js";
+import { compaRatio, bandPosition } from "../domain/pay-band.js";
 import { formatMoney, type MinorUnits } from "../domain/money.js";
 import { unprocessable } from "../http/errors.js";
-
-export type GroupBy = "country" | "department" | "level";
-
-export interface SummaryDto {
-  headcount: number;
-  medianUsd: string | null;
-  averageUsd: string | null;
-  minUsd: string | null;
-  maxUsd: string | null;
-}
-
-export interface CompensationReportDto {
-  asOf: string;
-  currency: string;
-  groupBy: GroupBy;
-  /** Active employees with a salary on or before asOf and no pay band evaluation involved. */
-  overall: SummaryDto;
-  /** Active employees who had no salary record on or before asOf, so they are left out. */
-  excludedWithoutSalary: number;
-  groups: Array<{ key: string; label: string; summary: SummaryDto }>;
-}
-
-export interface BandViolationDto {
-  employeeId: string;
-  employeeCode: string;
-  firstName: string;
-  lastName: string;
-  countryCode: string;
-  departmentName: string;
-  levelCode: string;
-  salary: { amount: string; currency: string; usd: string };
-  band: { minUsd: string; maxUsd: string };
-  position: Exclude<BandPosition, "WITHIN">;
-  compaRatio: number;
-}
-
-export interface BandViolationReportDto {
-  asOf: string;
-  currency: string;
-  /** Active employees evaluated against a pay band. */
-  evaluated: number;
-  /** Active employees whose level and country have no pay band. They cannot be evaluated. */
-  withoutBand: number;
-  items: BandViolationDto[];
-}
+import type {
+  GroupBy,
+  SummaryDto,
+  CompensationReportDto,
+  BandViolationDto,
+  BandViolationReportDto,
+} from "@salary/shared";
 
 const employeeInclude = {
   country: true,
