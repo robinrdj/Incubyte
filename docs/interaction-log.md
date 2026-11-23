@@ -42,3 +42,16 @@ A running record of requests, decisions, and what was built in each step. Newest
 - Set default stack choices in the plan: Drizzle ORM, Mantine, Vitest, Docker Compose Postgres, basic auth.
 
 **Open:** Confirm the stage plan and the default choices. Then start Stage 0.
+
+---
+
+## 2026-11-23 — Session 1 (cont.): Stage naming
+
+**User request:** Rename the stages to professional, easy-to-understand names.
+
+**Actions:**
+- Grouped the 12 stages into three phases: A (Backend, stages 0 to 6), B (Frontend, stages 7 to 9), C (Release, stages 10 to 11).
+- Replaced stage names with noun-phrase titles, for example "Project Foundation", "Core Business Logic", and "Production Deployment".
+- Updated `docs/plan.md`.
+
+**Open:** Confirm the names and default decisions, then start Stage 0.
