@@ -79,17 +79,31 @@ Integration tests refuse to run against any database whose name does not end in 
 Run with `npm run build` then `npm start` in `apps/api` (set the variables in `.env`).
 Every `/api` route requires HTTP Basic authentication. `GET /health` is public.
 
-| Method | Path                                | Purpose                                                                                                                                         |
-| ------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/employees`                    | Paginated list. Filters: `search`, `countryCode`, `departmentName`, `levelCode`, `status`. Also `page` and `pageSize` (max 100).                |
-| POST   | `/api/employees`                    | Create an employee with an opening salary.                                                                                                      |
-| GET    | `/api/employees/:id`                | Employee with current salary.                                                                                                                   |
-| PATCH  | `/api/employees/:id`                | Update profile fields. Audited with changed fields only.                                                                                        |
-| POST   | `/api/employees/:id/salary-changes` | Append a salary change. Must be dated after the current one.                                                                                    |
-| GET    | `/api/employees/:id/salary-history` | All salary records, oldest first. Past records cannot be edited.                                                                                |
-| GET    | `/api/employees/:id/audit`          | Every change to the employee, newest first.                                                                                                     |
-| GET    | `/api/analytics/compensation`       | Headcount, median, average, min, and max salary in USD. Groups by `groupBy=country\|department\|level`. Optional `asOf`. Active employees only. |
-| GET    | `/api/analytics/band-violations`    | Active employees whose salary is below or above their level and country pay band, with compa-ratio. Optional `asOf`.                            |
+| Method | Path                                | Purpose                                                                                                                                                                                                                              |
+| ------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/api/employees`                    | Paginated list. Filters: `search`, `countryCode`, `departmentName`, `levelCode`, `status`. Also `page` and `pageSize` (max 100).                                                                                                     |
+| POST   | `/api/employees`                    | Create an employee with an opening salary.                                                                                                                                                                                           |
+| GET    | `/api/employees/:id`                | Employee with current salary.                                                                                                                                                                                                        |
+| PATCH  | `/api/employees/:id`                | Update profile fields. Audited with changed fields only.                                                                                                                                                                             |
+| POST   | `/api/employees/:id/salary-changes` | Append a salary change. Must be dated after the current one.                                                                                                                                                                         |
+| GET    | `/api/employees/:id/salary-history` | All salary records, oldest first. Past records cannot be edited.                                                                                                                                                                     |
+| GET    | `/api/employees/:id/audit`          | Every change to the employee, newest first.                                                                                                                                                                                          |
+| GET    | `/api/analytics/compensation`       | Headcount, median, average, min, and max salary in USD. Groups by `groupBy=country\|department\|level`. Optional `asOf`. Active employees only.                                                                                      |
+| GET    | `/api/analytics/band-violations`    | Active employees whose salary is below or above their level and country pay band, with compa-ratio. Optional `asOf`.                                                                                                                 |
+| POST   | `/api/employees/import`             | Import employees from a CSV body (`Content-Type: text/csv`, max 5 MB, 10,000 rows). Valid rows are applied; rejected rows are reported by line. Add `?dryRun=true` to validate only. Re-running the same file creates no duplicates. |
+| GET    | `/api/employees/export.csv`         | Export employees matching the list filters, in the same columns the import accepts.                                                                                                                                                  |
+
+### CSV format
+
+Columns (header names are case-insensitive; unknown or missing required columns fail the whole file):
+
+`employeeCode, firstName, lastName, email, jobTitle, countryCode, departmentName, levelCode, startDate, status, salaryAmount, salaryCurrency, salaryEffectiveFrom`
+
+- `employeeCode` and `email` identify the employee. A row matches an existing employee by email, and the code must agree.
+- `status` is optional (`ACTIVE` or `LEAVING`). Leave it blank to keep the current status.
+- `salaryEffectiveFrom` is the date of the salary. A row with a new date later than the current salary appends a salary record. An identical salary is a no-op. A salary dated before the current one is rejected, because history is never rewritten.
+- Country, department, and level must already exist. Unknown values are rejected, not created.
+- Text cells starting with `=`, `+`, `-`, or `@` are prefixed with an apostrophe on export, to stop spreadsheet formula injection.
 
 Errors use one shape: `{ "error": { "code", "message", "details?" } }`.
 Status codes: 400 invalid input, 401 unauthenticated, 404 not found, 409 duplicate email or code, 422 business-rule violation.

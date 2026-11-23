@@ -298,3 +298,45 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 
 - The analytics report only uses data that exists. Nothing in the API lets HR add FX rates or pay bands yet. The Stage 6 seed will load sample rates and bands. Stage 9's UI, or a small endpoint, will need to maintain them. This is the main gap to decide on before deployment.
 - Performance at 10,000 employees is not yet measured. Stage 6 will time the analytics against the full seed.
+
+---
+
+## 2026-11-23 — Stage 5: Bulk Data Exchange
+
+**User request:** Start Stage 5.
+
+**Design decisions (made before building):**
+
+- **Identity.** An employee is matched by email, and the employee code must agree with the existing record. A row cannot take over another person's record.
+- **Idempotency.** Re-running the same file changes nothing. Salary history is append-only. A row whose salary already exists is a no-op. A salary that conflicts with an existing record, or is dated before the current one, is rejected.
+- **Partial success.** Rows with errors are rejected and reported with their line numbers. Valid rows are applied together in one transaction.
+- **Ambiguous files.** If an email or employee code appears twice in the same file, every row involved is rejected, because the file itself is contradictory.
+- **Dry run.** `?dryRun=true` runs the full plan and reports what would happen, with no writes.
+- **Round trip.** The export uses the same columns as the import, so an exported file can be imported again without changes.
+- **Format.** The import takes raw `text/csv` as the request body, up to 5 MB, so no multipart parser is needed.
+
+**What was built:**
+
+- `domain/csv.ts`: an RFC 4180 parser, handling quoted fields, escaped quotes, embedded newlines, CRLF and LF, and a byte-order mark. The formatter neutralizes formula injection.
+- `domain/employee-import.ts`: the row validator, extended with `employeeCode` (required) and an optional `status`. It also includes header mapping. Missing required columns and unknown columns both fail the whole file, so a typo such as `salary_amount` is caught.
+- `domain/employee-import-plan.ts`: a pure planner. For each row it decides CREATE, UPDATE, UNCHANGED, or REJECTED, using only a snapshot of existing data. It is unit tested in isolation.
+- `services/bulk-exchange-service.ts`: loads reference data and existing employees (in chunks of 1,000), plans, and applies the planned changes in one transaction with a 120-second timeout.
+- `services/employee-filters.ts`: the list filters, shared by the list endpoint and the export, so both always return the same people.
+- `http/bulk-routes.ts`: `POST /api/employees/import` and `GET /api/employees/export.csv`. The export route is registered before `/employees/:id`, so `export.csv` is not read as an ID.
+
+**Verification:**
+
+- 108 unit tests pass, 35 of them new: CSV parsing and formatting, header mapping, row validation, and every planner rule.
+- 72 integration tests pass across 4 files. The 21 new ones in `bulk.integration.test.ts` cover valid and invalid rows, line-numbered errors, duplicates within a file, re-running an import, profile and salary updates, dry runs, malformed files, missing or misspelled columns, export filters, round-trip export and import, and formula neutralization.
+- `npm run check` passes.
+
+**Problems and fixes during the stage:**
+
+- One integration test failed because the row I built was dated before the employee's start date, so validation rejected it before the history rule ran. I rebuilt the test so only the history rule could reject it. I also added a separate test for the start-date rule.
+- A lint error on a redundant `String()` call was fixed.
+
+**Not covered yet:**
+
+- Import performance at the full 10,000-row limit. Stage 6 will measure it alongside the seed.
+- Import is one transaction, so a very large file holds locks for its whole duration. This is acceptable for a single-user HR tool. Production would process in batches.
+- Email matching is exact after lower-casing. Employees seeded or imported before this rule existed must already be lower-case. The seed will enforce that.
