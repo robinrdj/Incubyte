@@ -60,3 +60,29 @@ A running record of requests, decisions, and what was built in each step. Newest
 - Updated `docs/plan.md`.
 
 **Open:** Confirm the names and default decisions, then start Stage 0.
+
+---
+
+## 2026-11-23 — Stage 0: Project Foundation
+
+**User request:** Start Stage 0.
+
+**Actions and commits:**
+
+| Commit | What changed |
+|---|---|
+| `18e660c` | Root tooling: npm workspaces, strict TypeScript base config, typed ESLint, Prettier, Vitest, Node 22 pin |
+| `044735c` | Line-ending normalization (`.gitattributes`) and Prettier formatting of docs |
+| `ee00142` | `packages/shared` with `APP_NAME` and a passing smoke test |
+| `aaf49b7` | `apps/api` depending on `@salary/shared`, with a passing smoke test; root `build` script |
+| (next) | Docker Compose for PostgreSQL, `.env.example`, README skeleton, this log entry |
+
+**Verification:** `npm run check` passes: build, typecheck, lint, format check, and 2 test files with 2 tests.
+
+**Deviations from the plan:**
+- `apps/web` is not created yet. It belongs to Stage 7, so the workspace list in the plan changes accordingly.
+- Docker host ports are 5434 (dev) and 5435 (test). A PostgreSQL 17 service already runs on 5432 on this machine.
+
+**Blocker (open):** The Docker Desktop engine did not start after launch and a two-minute wait. Compose config validates offline, but containers have not been started, so the "Postgres starts locally" criterion is not yet verified. Local PostgreSQL services are running, but the password is unknown, so I have not used them.
+
+**To unblock:** Start Docker Desktop manually and run `docker compose up -d`. Alternatively, provide credentials for a local PostgreSQL database named `salary`, and we can point `.env` at it.
