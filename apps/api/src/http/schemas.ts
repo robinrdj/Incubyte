@@ -87,3 +87,16 @@ export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
 export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
 export type SalaryInput = z.infer<typeof salaryInputSchema>;
 export type ListEmployeesQuery = z.infer<typeof listEmployeesQuerySchema>;
+
+const asOfDate = isoDate.optional();
+
+export const compensationQuerySchema = z.object({
+  groupBy: z.enum(["country", "department", "level"]).default("country"),
+  asOf: asOfDate,
+});
+
+export const bandViolationsQuerySchema = z.object({
+  asOf: asOfDate,
+});
+
+export type CompensationQuery = z.infer<typeof compensationQuerySchema>;
