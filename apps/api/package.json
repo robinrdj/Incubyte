@@ -8,11 +8,25 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "generate": "prisma generate",
+    "build": "npm run generate && tsc -p tsconfig.build.json",
+    "typecheck": "npm run generate && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:integration": "vitest run -c vitest.integration.config.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:test:deploy": "cross-env PRISMA_USE_TEST_DB=1 prisma migrate deploy"
   },
   "dependencies": {
-    "@salary/shared": "0.1.0"
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "@salary/shared": "0.1.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.6.1",
+    "prisma": "^7.10.1"
   }
 }

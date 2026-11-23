@@ -110,3 +110,44 @@ A running record of requests, decisions, and what was built in each step. Newest
 - Updated `docs/plan.md` (Stage 1 scope and default decisions) and `README.md` to name Prisma.
 - Noted the trade-off: Prisma has no built-in median, so median and percentile queries use typed raw SQL and are covered by integration tests.
 - No code changed. Prisma is installed in Stage 1, when the schema is written.
+
+---
+
+## 2026-11-23 — Stage 1: Data Model and Persistence
+
+**User request:** Finish Stage 1.
+
+**What was built:**
+
+- Prisma 7.10.1 in `apps/api`, using the `@prisma/adapter-pg` driver adapter.
+- `prisma/schema.prisma` with 8 domain models: `Country`, `Department`, `Level`, `Employee`, `SalaryRecord`, `PayBand`, `FxRate`, `AuditLog`. It also has enums for employee status (`ACTIVE`, `LEAVING`) and audit action.
+- Money columns use `DECIMAL(14,2)`. FX rates use `DECIMAL(18,8)`.
+- Salary history is append-only. `SalaryRecord` is unique on `(employeeId, effectiveFrom)`.
+- Indexes on the employee columns used for filtering and search: country, department, level, last name with first name, and status. Also on salary history and audit log lookups.
+- Initial migration `20261123111012_init`.
+- `src/db/prisma.ts`, a client factory, so tests can point at a chosen database.
+- Integration tests in `test/schema.integration.test.ts` (6 tests). They check tables, indexes, the unique email and effective-date constraints, exact decimal storage, and append-only history.
+
+**Verification:**
+
+- The test database (`salary_test`) was emptied and `prisma migrate deploy` applied the migration from scratch. This created 8 domain tables, plus Prisma's migration-tracking table.
+- Integration tests: 6 of 6 pass against the migrated test database.
+- `npm run check` passes with exit code 0.
+
+**Rollback, and a deviation from the plan:**
+
+- Prisma has no down-migrations. I changed the criterion to "drop-and-reapply".
+- I dropped the `salary_test` schema directly with SQL. Tables went to 0, then migrations were re-applied. The database is the disposable test database.
+- I tried `prisma migrate reset`. Prisma blocked it, because it detected an AI agent and treats reset as a destructive action that needs explicit user consent. I did not bypass that guard.
+- The test script is therefore `db:test:deploy` (non-destructive `migrate deploy`), not a reset.
+
+**Decisions:**
+
+- Generated Prisma client is gitignored. `npm run build` and `npm run typecheck` regenerate it.
+- Prisma CLI commands run against the dev database by default. `PRISMA_USE_TEST_DB=1` targets the test database.
+- The integration test refuses to run unless the database name ends in `_test`. This protects the dev database, because the tests truncate tables.
+
+**Open items (not Stage 1):**
+
+- `npm audit` reports 3 high-severity vulnerabilities in the dependency tree. I'll review them before deployment, in Stage 10.
+- The `reset` command is a user decision. If you want a one-step reset in the scripts, you need to approve it explicitly.

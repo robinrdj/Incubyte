@@ -60,3 +60,16 @@ npm run check
 | `npm run format:check` | Prettier check                        |
 | `npm test`             | Run all test suites                   |
 | `npm run check`        | All of the above, in order            |
+
+### Database commands (run inside `apps/api`)
+
+| Command                    | Purpose                                              |
+| -------------------------- | ---------------------------------------------------- |
+| `npm run db:migrate`       | Create and apply a new migration to the dev database |
+| `npm run db:deploy`        | Apply pending migrations to the dev database         |
+| `npm run db:test:deploy`   | Apply pending migrations to the test database        |
+| `npm run test:integration` | Run integration tests against the test database      |
+
+Prisma has no down-migrations. To roll back, drop the schema and re-apply:
+`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`, then `npm run db:test:deploy`.
+Integration tests refuse to run against any database whose name does not end in `_test`.
