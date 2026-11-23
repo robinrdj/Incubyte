@@ -73,3 +73,23 @@ npm run check
 Prisma has no down-migrations. To roll back, drop the schema and re-apply:
 `DROP SCHEMA public CASCADE; CREATE SCHEMA public;`, then `npm run db:test:deploy`.
 Integration tests refuse to run against any database whose name does not end in `_test`.
+
+## API
+
+Run with `npm run build` then `npm start` in `apps/api` (set the variables in `.env`).
+Every `/api` route requires HTTP Basic authentication. `GET /health` is public.
+
+| Method | Path                                | Purpose                                                                                                                          |
+| ------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/employees`                    | Paginated list. Filters: `search`, `countryCode`, `departmentName`, `levelCode`, `status`. Also `page` and `pageSize` (max 100). |
+| POST   | `/api/employees`                    | Create an employee with an opening salary.                                                                                       |
+| GET    | `/api/employees/:id`                | Employee with current salary.                                                                                                    |
+| PATCH  | `/api/employees/:id`                | Update profile fields. Audited with changed fields only.                                                                         |
+| POST   | `/api/employees/:id/salary-changes` | Append a salary change. Must be dated after the current one.                                                                     |
+| GET    | `/api/employees/:id/salary-history` | All salary records, oldest first. Past records cannot be edited.                                                                 |
+| GET    | `/api/employees/:id/audit`          | Every change to the employee, newest first.                                                                                      |
+
+Errors use one shape: `{ "error": { "code", "message", "details?" } }`.
+Status codes: 400 invalid input, 401 unauthenticated, 404 not found, 409 duplicate email or code, 422 business-rule violation.
+
+Environment variables (in `.env`): `DATABASE_URL`, `BASIC_AUTH_USER`, `BASIC_AUTH_PASSWORD` (at least 12 characters), and optionally `PORT` (default 4000).

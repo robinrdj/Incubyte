@@ -201,3 +201,54 @@ A running record of requests, decisions, and what was built in each step. Newest
 **Open for later stages:**
 
 - `findDuplicateEmails` covers duplicates within a single import file. Checking for emails that already exist in the database belongs to Stage 5, which needs database access.
+
+---
+
+## 2026-11-23 — Stage 3: Employee and Salary Services
+
+**User request:** Finish Stage 3.
+
+**What was built.** An Express 5 HTTP API under `apps/api/src`:
+
+- `config.ts`: reads `DATABASE_URL`, `BASIC_AUTH_USER`, `BASIC_AUTH_PASSWORD` (at least 12 characters), and `PORT`. Validates them with Zod, and fails at startup with a clear message.
+- `http/basic-auth.ts`: HTTP Basic authentication for the single HR account. Comparisons are constant-time. It records the authenticated user as the actor on every request.
+- `http/errors.ts`: one error body shape, `{ error: { code, message, details? } }`. Maps domain errors to 422, Prisma unique violations to 409, validation failures to 400, and unexpected errors to a generic 500 with no internal detail.
+- `http/schemas.ts`: input validation. It reuses the Stage 2 domain rules for money, dates, and emails.
+- `services/employee-service.ts`: the business rules. Each write runs in a transaction, so a salary change and its audit row succeed or fail together.
+- `http/employee-routes.ts` and `http/app.ts`: thin routes. `/api` is protected, `/health` is public.
+
+**Business rules enforced:**
+
+- Duplicate emails (case-insensitive) and duplicate employee codes return 409. Checks happen before writes, and the database unique constraints back them up.
+- Country, department, and level must already exist. Unknown codes return 422 and are never created.
+- Salary history is append-only. A new salary must be dated strictly after the current one, so the history can grow but never be backdated. An earlier record is never modified, and there is no route that edits or deletes one.
+- Salary and employee changes are audited. The audit trail records the actor, and for updates it records only the fields that actually changed.
+- Future-dated salaries and salaries dated before the start date are rejected.
+
+**Verification:**
+
+- 37 integration tests pass against the test database. These cover authentication, creation, duplicate handling, filtering and pagination, updates, append-only history, audit attribution, and the absence of any route that modifies past salary records.
+- 65 unit tests still pass. Lint, typecheck, and the full `npm run check` pass.
+- The compiled server was started and tested with real requests. Health returns 200, unauthenticated requests return 401, and authenticated list and create requests work end to end.
+
+**Problems found and fixed:**
+
+- Typing errors under `exactOptionalPropertyTypes`. Fixed by splitting the reference lookups into one function per field, and by making `SalaryDto` a type alias so it fits Prisma's JSON type.
+- A `pg` deprecation warning ("client.query() when the client is already executing a query"). The cause is Prisma's adapter: inside an interactive transaction, a query with `include` triggers concurrent relation loads. Fixed by running list reads outside transactions, and by loading single records in transactions one query at a time, with no `include`. The warning no longer appears.
+- ESLint reported unsafe `any` access on supertest response bodies. I relaxed those rules for `test/` only. Production code keeps them on.
+
+**Decisions:**
+
+- The employee code is supplied by the caller rather than generated. A generated sequence would need extra concurrency handling, and HR systems usually assign codes externally.
+- The current salary is the most recent record. Scheduled future-dated changes are not supported in v1.
+- The audit trail is not paginated yet. It returns all events for one employee, which is acceptable at this scale.
+- Reads are not wrapped in a single snapshot transaction, because of the adapter issue above. For an HR tool with one user, this is an acceptable trade-off.
+
+**Action I need to flag:** While smoke-testing the server, I tried a shell command that included a broad process kill (`taskkill` on every `node.exe`). It was denied, and I did not retry it. Nothing was left running: I checked port 4100 and nothing was listening. I then tested the server with `timeout`, which stops it automatically.
+
+**Credentials:** I generated a random `BASIC_AUTH_PASSWORD` and wrote it to `.env`, which is gitignored. I did not record it in the log or commit it. The tracked `.env.example` holds only a placeholder.
+
+**Known gaps for later:**
+
+- The dev database has no reference data yet (countries, departments, levels). The seed script in Stage 6 adds it.
+- `npm audit` warnings are still open. They are scheduled for Stage 10.
