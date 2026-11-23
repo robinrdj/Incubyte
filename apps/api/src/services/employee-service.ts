@@ -1,6 +1,7 @@
 import { Prisma, type PrismaClient } from "../generated/prisma/client.js";
 import { formatMoney, parseMoney } from "../domain/money.js";
 import { conflict, notFound, unprocessable } from "../http/errors.js";
+import { employeeWhere } from "./employee-filters.js";
 import type {
   CreateEmployeeInput,
   ListEmployeesQuery,
@@ -131,22 +132,7 @@ export class EmployeeService {
   }
 
   async list(query: ListEmployeesQuery): Promise<Page<EmployeeDto>> {
-    const where: Prisma.EmployeeWhereInput = {
-      ...(query.search
-        ? {
-            OR: [
-              { firstName: { contains: query.search, mode: "insensitive" } },
-              { lastName: { contains: query.search, mode: "insensitive" } },
-              { email: { contains: query.search, mode: "insensitive" } },
-              { employeeCode: { contains: query.search, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-      ...(query.countryCode ? { country: { code: query.countryCode } } : {}),
-      ...(query.departmentName ? { department: { name: query.departmentName } } : {}),
-      ...(query.levelCode ? { level: { code: query.levelCode } } : {}),
-      ...(query.status ? { status: query.status } : {}),
-    };
+    const where = employeeWhere(query);
 
     // Reads run outside a transaction. Prisma's adapter fires relation loads concurrently inside a
     // transaction, which triggers a pg driver deprecation warning.

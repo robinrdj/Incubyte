@@ -71,12 +71,15 @@ export const updateEmployeeSchema = z
 
 export const salaryChangeSchema = salaryInputSchema;
 
-export const listEmployeesQuerySchema = z.object({
+export const employeeFilterSchema = z.object({
   search: z.string().trim().max(100).optional(),
   countryCode: countryCode.optional(),
   departmentName: departmentName.optional(),
   levelCode: levelCode.optional(),
   status: employeeStatusSchema.optional(),
+});
+
+export const listEmployeesQuerySchema = employeeFilterSchema.extend({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(25),
 });
