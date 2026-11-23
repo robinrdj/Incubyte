@@ -26,9 +26,29 @@ export default tseslint.config(
     },
   },
   {
+    rules: {
+      // Underscore-prefixed names mark intentionally unused parameters (e.g. Express error handlers).
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
+  {
     files: ["**/*.test.ts"],
     rules: {
       "@typescript-eslint/no-non-null-assertion": "off",
+    },
+  },
+  {
+    // supertest response bodies are typed `any`. Tests assert on them directly, so the
+    // unsafe-any rules are relaxed for integration test folders only.
+    files: ["**/test/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-unsafe-argument": "off",
     },
   },
   {
