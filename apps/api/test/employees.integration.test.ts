@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/http/app.js";
 import type { PrismaClient } from "../src/generated/prisma/client.js";
 import { EmployeeService } from "../src/services/employee-service.js";
+import { AnalyticsService } from "../src/services/analytics-service.js";
 import {
   AUTH_HEADER,
   FIXED_NOW,
@@ -19,6 +20,7 @@ beforeAll(() => {
   prisma = createTestClient();
   app = createApp({
     service: new EmployeeService(prisma, () => FIXED_NOW),
+    analytics: new AnalyticsService(prisma, () => FIXED_NOW),
     credentials: TEST_CREDENTIALS,
   });
 });
