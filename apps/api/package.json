@@ -16,7 +16,8 @@
     "start": "node dist/main.js",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:test:deploy": "cross-env PRISMA_USE_TEST_DB=1 prisma migrate deploy"
+    "db:test:deploy": "cross-env PRISMA_USE_TEST_DB=1 prisma migrate deploy",
+    "seed": "npm run build && node --env-file=../../.env dist/seed/run.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
