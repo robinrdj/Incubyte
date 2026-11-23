@@ -8,7 +8,7 @@ import type {
   SalaryInput,
   UpdateEmployeeInput,
 } from "../http/schemas.js";
-import type { SalaryDto, EmployeeDto, AuditEventDto, Page } from "@salary/shared";
+import type { AuditEventDto, EmployeeDto, Page, ReferenceDataDto, SalaryDto } from "@salary/shared";
 
 type Tx = Prisma.TransactionClient;
 
@@ -302,6 +302,20 @@ export class EmployeeService {
       actor: event.actor,
       createdAt: event.createdAt.toISOString(),
     }));
+  }
+
+  /** Countries, departments, and levels for pickers. Read-only. */
+  async reference(): Promise<ReferenceDataDto> {
+    const [countries, departments, levels] = await Promise.all([
+      this.db.country.findMany({ orderBy: { name: "asc" } }),
+      this.db.department.findMany({ orderBy: { name: "asc" } }),
+      this.db.level.findMany({ orderBy: { rank: "asc" } }),
+    ]);
+    return {
+      countries: countries.map((c) => ({ code: c.code, name: c.name, currency: c.currency })),
+      departments: departments.map((d) => ({ name: d.name })),
+      levels: levels.map((l) => ({ code: l.code, rank: l.rank })),
+    };
   }
 
   private async ensureExists(id: string): Promise<void> {

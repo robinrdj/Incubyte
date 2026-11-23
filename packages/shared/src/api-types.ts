@@ -138,3 +138,10 @@ export interface ImportReportDto {
 export interface ApiErrorBody {
   error: { code: string; message: string; details?: unknown };
 }
+
+/** Picker options for the employee forms. */
+export interface ReferenceDataDto {
+  countries: Array<{ code: string; name: string; currency: string }>;
+  departments: Array<{ name: string }>;
+  levels: Array<{ code: string; rank: number }>;
+}

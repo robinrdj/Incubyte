@@ -21,6 +21,10 @@ function actorOf(locals: Record<string, unknown>): string {
 export function createEmployeeRouter(service: EmployeeService): Router {
   const router = Router();
 
+  router.get("/reference", async (_req, res) => {
+    res.json(await service.reference());
+  });
+
   router.get("/employees", async (req, res) => {
     const query = listEmployeesQuerySchema.parse(req.query);
     res.json(await service.list(query));
