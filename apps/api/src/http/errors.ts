@@ -76,6 +76,15 @@ export const errorHandler: ErrorRequestHandler = (err: unknown, _req, res, _next
     return;
   }
 
+  if (
+    typeof err === "object" &&
+    err !== null &&
+    (err as { type?: unknown }).type === "entity.too.large"
+  ) {
+    send(413, { error: { code: "PAYLOAD_TOO_LARGE", message: "The request body is too large" } });
+    return;
+  }
+
   console.error("Unhandled error", err);
   send(500, { error: { code: "INTERNAL", message: "An unexpected error occurred" } });
 };

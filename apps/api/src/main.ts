@@ -2,6 +2,7 @@ import { loadConfig } from "./config.js";
 import { createPrismaClient } from "./db/prisma.js";
 import { createApp } from "./http/app.js";
 import { AnalyticsService } from "./services/analytics-service.js";
+import { BulkExchangeService } from "./services/bulk-exchange-service.js";
 import { EmployeeService } from "./services/employee-service.js";
 
 const config = loadConfig(process.env);
@@ -11,6 +12,7 @@ const clock = (): Date => new Date();
 const app = createApp({
   service: new EmployeeService(prisma, clock),
   analytics: new AnalyticsService(prisma, clock),
+  bulk: new BulkExchangeService(prisma, clock),
   credentials: { user: config.BASIC_AUTH_USER, password: config.BASIC_AUTH_PASSWORD },
 });
 
