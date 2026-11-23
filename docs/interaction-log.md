@@ -24,4 +24,9 @@ A running record of requests, decisions, and what was built in each step. Newest
 **Actions:**
 - Created project folder `salary-management/` and initialized git.
 - Created this interaction log.
-- Next: write `docs/requirements.md` and commit it.
+- Wrote `docs/requirements.md` (one page: goal, users, 9 features with acceptance criteria, 8 deliberate exclusions with reasoning, trade-offs, open questions).
+- Committed requirements as a separate commit.
+
+**Open question for the user:** Should salary changes need approval before taking effect? Current assumption is no.
+
+**Next:** Confirm the requirements (or request changes) before scaffolding the monorepo.
