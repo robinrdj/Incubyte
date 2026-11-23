@@ -2,6 +2,7 @@
   "name": "salary-management",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Salary management web app for HR: employee directory, pay history, pay bands, and compensation analytics.",
   "workspaces": [
     "packages/*",
@@ -11,12 +12,13 @@
     "node": ">=22"
   },
   "scripts": {
+    "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "npm run test --workspaces --if-present",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test"
+    "check": "npm run build && npm run typecheck && npm run lint && npm run format:check && npm run test"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
