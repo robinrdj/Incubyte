@@ -169,3 +169,35 @@ A running record of requests, decisions, and what was built in each step. Newest
 - Verified: `npm run check` passes (exit 0). Integration tests pass (6 of 6).
 
 **Left untouched:** `backend/` and `frontend/` remain untracked. Whether to bring them into the repo is the user's decision.
+
+---
+
+## 2026-11-23 — Stage 2: Core Business Logic
+
+**User request:** Finish Stage 2.
+
+**What was built.** All of these are pure functions in `apps/api/src/domain/`, with no database or I/O:
+
+- **Money** (`money.ts`): amounts are integer minor units (cents) inside the domain. This avoids floating-point drift. `parseMoney` accepts up to two decimal places and rejects zero, negatives, and values too large to represent exactly. `formatMoney` is its inverse.
+- **FX** (`fx.ts`): `toReportingCurrency` converts to USD. A missing rate throws `MissingFxRateError`, and a non-positive rate throws `InvalidFxRateError`. A gap in the rate table therefore never produces a silently wrong total.
+- **Pay bands** (`pay-band.ts`): `bandPosition` (below, within, or above, with inclusive bounds). `compaRatio` (amount over midpoint). Zero-valued bands and inverted bands are rejected.
+- **Statistics** (`statistics.ts`): `mean`, `median`, and `percentile`. `percentile` interpolates the same way PostgreSQL's `percentile_cont` does, so in-memory and SQL results agree.
+- **Employee import** (`employee-import.ts`): `validateEmployeeRow` collects every error in a row, not just the first. It checks countries, departments, and levels against reference data, and it rejects unknown codes rather than creating them. It also checks dates, including impossible dates and dates in the future. `findDuplicateEmails` compares emails case-insensitively.
+- `today` is injected into the import validator, so the tests never depend on the clock.
+
+**Verification:**
+
+- 65 unit tests across 6 files pass. The suite runs in about 2.3 seconds, inside the 5-second budget.
+- Edge cases covered as required: a missing FX rate, a zero-valued band, and duplicate emails.
+- Expected values were checked independently. For example, the percentiles of `{10, 20, 30, 40}` are 17.5 and 32.5.
+- `npm run check` passes with exit code 0.
+
+**Decisions:**
+
+- Minor units are plain integers rather than `bigint` or a decimal library. Salaries are far below the safe-integer limit, and the code stays simple.
+- Validation returns a `Result` with a list of errors, and does not throw. Business-rule violations still throw, because they indicate a programming error or bad data reaching the domain.
+- Reference data (countries, departments, levels) is passed in. The domain never reads the database.
+
+**Open for later stages:**
+
+- `findDuplicateEmails` covers duplicates within a single import file. Checking for emails that already exist in the database belongs to Stage 5, which needs database access.
