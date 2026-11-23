@@ -252,3 +252,49 @@ A running record of requests, decisions, and what was built in each step. Newest
 
 - The dev database has no reference data yet (countries, departments, levels). The seed script in Stage 6 adds it.
 - `npm audit` warnings are still open. They are scheduled for Stage 10.
+
+---
+
+## 2026-11-23 — Stage 4: Compensation Analytics
+
+**User request:** Start Stage 4.
+
+**Deviation from the plan (decided before building).** The plan said median would use raw SQL (`percentile_cont`). I computed the aggregates in TypeScript instead, for three reasons:
+
+- Converting each salary to USD needs the FX rule that is already tested in Stage 2. Doing it in SQL would duplicate that rule.
+- The "latest rate on or before the date" logic is simpler to read and verify in code.
+- At 10,000 employees, one query plus in-memory aggregation is well inside the time budget. Stage 6 will measure this with the full seed.
+
+The Stage 2 percentile still matches `percentile_cont`, so the two approaches agree.
+
+**What was built:**
+
+- `domain/compensation.ts`: `summarizeCompensation` (headcount, median, average, min, max, with averages rounded to whole cents) and `groupItems` (groups sorted by label, so output is stable).
+- `services/analytics-service.ts`:
+  - **Compensation report.** Current salary of each active employee on the `asOf` date, converted to USD. Grouped by country, department, or level.
+  - **Band violations.** Compares each employee's USD salary with the USD band for their level and country, using the Stage 2 `bandPosition` and `compaRatio`.
+- `http/analytics-routes.ts`: `GET /api/analytics/compensation` and `GET /api/analytics/band-violations`.
+
+**Rules the analytics follow:**
+
+- Active employees only. Leaving employees are excluded.
+- Each salary is the latest record on or before `asOf`. An active employee with no salary yet on that date is excluded, and the report counts them in `excludedWithoutSalary`.
+- The FX rate is the latest one on or before `asOf`. If any salary or band lacks a rate, the request fails with 422 and names the missing currencies. Rows are never dropped silently.
+- An employee whose level and country have no pay band is counted in `withoutBand`, not evaluated.
+
+**Verification:**
+
+- A fixed fixture with hand-calculated expectations: 7 employees across two countries, two departments, and two levels, plus two FX dates and two pay bands. Assertions check exact values, for example overall median 66,000.00 USD and average 74,120.00 USD, and a Germany average of 106,333.33 USD.
+- 14 new integration tests cover the groupings, the FX date selection, band violations and their compa-ratios, the missing-rate error, and the empty-report case.
+- 7 new unit tests for the summary and grouping functions.
+- Totals: 73 unit tests and 51 integration tests pass. `npm run check` passes.
+
+**Two fixes during the stage:**
+
+- Template literals with numbers failed lint. I wrapped the values in `String()`.
+- The first run of the integration tests passed without changes to the code.
+
+**Open items:**
+
+- The analytics report only uses data that exists. Nothing in the API lets HR add FX rates or pay bands yet. The Stage 6 seed will load sample rates and bands. Stage 9's UI, or a small endpoint, will need to maintain them. This is the main gap to decide on before deployment.
+- Performance at 10,000 employees is not yet measured. Stage 6 will time the analytics against the full seed.

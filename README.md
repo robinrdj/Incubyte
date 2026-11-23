@@ -79,15 +79,17 @@ Integration tests refuse to run against any database whose name does not end in 
 Run with `npm run build` then `npm start` in `apps/api` (set the variables in `.env`).
 Every `/api` route requires HTTP Basic authentication. `GET /health` is public.
 
-| Method | Path                                | Purpose                                                                                                                          |
-| ------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/employees`                    | Paginated list. Filters: `search`, `countryCode`, `departmentName`, `levelCode`, `status`. Also `page` and `pageSize` (max 100). |
-| POST   | `/api/employees`                    | Create an employee with an opening salary.                                                                                       |
-| GET    | `/api/employees/:id`                | Employee with current salary.                                                                                                    |
-| PATCH  | `/api/employees/:id`                | Update profile fields. Audited with changed fields only.                                                                         |
-| POST   | `/api/employees/:id/salary-changes` | Append a salary change. Must be dated after the current one.                                                                     |
-| GET    | `/api/employees/:id/salary-history` | All salary records, oldest first. Past records cannot be edited.                                                                 |
-| GET    | `/api/employees/:id/audit`          | Every change to the employee, newest first.                                                                                      |
+| Method | Path                                | Purpose                                                                                                                                         |
+| ------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/employees`                    | Paginated list. Filters: `search`, `countryCode`, `departmentName`, `levelCode`, `status`. Also `page` and `pageSize` (max 100).                |
+| POST   | `/api/employees`                    | Create an employee with an opening salary.                                                                                                      |
+| GET    | `/api/employees/:id`                | Employee with current salary.                                                                                                                   |
+| PATCH  | `/api/employees/:id`                | Update profile fields. Audited with changed fields only.                                                                                        |
+| POST   | `/api/employees/:id/salary-changes` | Append a salary change. Must be dated after the current one.                                                                                    |
+| GET    | `/api/employees/:id/salary-history` | All salary records, oldest first. Past records cannot be edited.                                                                                |
+| GET    | `/api/employees/:id/audit`          | Every change to the employee, newest first.                                                                                                     |
+| GET    | `/api/analytics/compensation`       | Headcount, median, average, min, and max salary in USD. Groups by `groupBy=country\|department\|level`. Optional `asOf`. Active employees only. |
+| GET    | `/api/analytics/band-violations`    | Active employees whose salary is below or above their level and country pay band, with compa-ratio. Optional `asOf`.                            |
 
 Errors use one shape: `{ "error": { "code", "message", "details?" } }`.
 Status codes: 400 invalid input, 401 unauthenticated, 404 not found, 409 duplicate email or code, 422 business-rule violation.
