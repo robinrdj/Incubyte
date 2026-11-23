@@ -1,16 +1,25 @@
 import { parseMoney, type MinorUnits } from "./money.js";
 import { fail, ok, type Result } from "./result.js";
 
+/** Upper bound on data rows in one import. Larger files should be split. */
+export const MAX_IMPORT_ROWS = 10_000;
+
+export type EmploymentStatus = "ACTIVE" | "LEAVING";
+
 /** One validated employee row from a CSV import, with salary and reference codes resolved to values. */
 export interface EmployeeImportRow {
+  readonly employeeCode: string;
   readonly firstName: string;
   readonly lastName: string;
+  /** Lower case. Together with the employee code, this identifies the employee. */
   readonly email: string;
   readonly jobTitle: string;
   readonly countryCode: string;
   readonly departmentName: string;
   readonly levelCode: string;
   readonly startDate: string;
+  /** Absent when the status column is blank, which leaves the employee's status unchanged. */
+  readonly status?: EmploymentStatus;
   readonly salaryAmount: MinorUnits;
   readonly salaryCurrency: string;
   readonly salaryEffectiveFrom: string;
@@ -27,11 +36,9 @@ export interface ImportReferenceData {
 
 export type RawEmployeeRow = Readonly<Record<string, string | undefined>>;
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const CURRENCY_PATTERN = /^[A-Z]{3}$/;
-const COUNTRY_PATTERN = /^[A-Z]{2}$/;
-
-const REQUIRED_FIELDS = [
+/** Column names the import understands, in the order the export writes them. */
+export const IMPORT_COLUMNS = [
+  "employeeCode",
   "firstName",
   "lastName",
   "email",
@@ -40,10 +47,18 @@ const REQUIRED_FIELDS = [
   "departmentName",
   "levelCode",
   "startDate",
+  "status",
   "salaryAmount",
   "salaryCurrency",
   "salaryEffectiveFrom",
 ] as const;
+
+const REQUIRED_COLUMNS: readonly string[] = IMPORT_COLUMNS.filter((c) => c !== "status");
+
+const EMPLOYEE_CODE_PATTERN = /^[A-Z0-9-]{3,20}$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CURRENCY_PATTERN = /^[A-Z]{3}$/;
+const COUNTRY_PATTERN = /^[A-Z]{2}$/;
 
 /** True for a real calendar date in YYYY-MM-DD form (rejects 2024-02-30). */
 export function isIsoDate(value: string): boolean {
@@ -65,13 +80,18 @@ export function validateEmployeeRow(
   const errors: string[] = [];
   const value = (field: string): string => (raw[field] ?? "").trim();
 
-  for (const field of REQUIRED_FIELDS) {
+  for (const field of REQUIRED_COLUMNS) {
     if (value(field) === "") {
       errors.push(`${field} is required`);
     }
   }
 
-  const email = value("email");
+  const employeeCode = value("employeeCode").toUpperCase();
+  if (employeeCode !== "" && !EMPLOYEE_CODE_PATTERN.test(employeeCode)) {
+    errors.push(`employeeCode "${employeeCode}" must be 3 to 20 letters, digits, or hyphens`);
+  }
+
+  const email = value("email").toLowerCase();
   if (email !== "" && !EMAIL_PATTERN.test(email)) {
     errors.push(`email "${email}" is not valid`);
   }
@@ -101,6 +121,11 @@ export function validateEmployeeRow(
     } else if (startDate > reference.today) {
       errors.push(`startDate ${startDate} is in the future`);
     }
+  }
+
+  const statusText = value("status").toUpperCase();
+  if (statusText !== "" && statusText !== "ACTIVE" && statusText !== "LEAVING") {
+    errors.push(`status "${statusText}" must be ACTIVE or LEAVING`);
   }
 
   const salaryEffectiveFrom = value("salaryEffectiveFrom");
@@ -139,7 +164,9 @@ export function validateEmployeeRow(
     return fail(errors.length > 0 ? errors : ["salaryAmount is required"]);
   }
 
+  const status = statusText === "" ? undefined : (statusText as EmploymentStatus);
   return ok({
+    employeeCode,
     firstName: value("firstName"),
     lastName: value("lastName"),
     email,
@@ -148,10 +175,72 @@ export function validateEmployeeRow(
     departmentName,
     levelCode,
     startDate,
+    ...(status === undefined ? {} : { status }),
     salaryAmount,
     salaryCurrency,
     salaryEffectiveFrom,
   });
+}
+
+export interface MappedCsvRow {
+  /** Record number in the file. The header is record 1, so the first data row is record 2. */
+  readonly line: number;
+  readonly raw: RawEmployeeRow;
+}
+
+/**
+ * Maps a parsed CSV table onto import columns. Header names match case-insensitively.
+ * Missing required columns and unknown columns are both errors, so a typo such as
+ * "salary_amount" fails loudly instead of being ignored.
+ */
+export function mapCsvToRows(
+  table: readonly (readonly string[])[],
+): Result<MappedCsvRow[], string[]> {
+  const header = table[0];
+  if (!header) {
+    return fail(["the file is empty"]);
+  }
+
+  const canonical = new Map(IMPORT_COLUMNS.map((name) => [name.toLowerCase(), name]));
+  const columns: string[] = [];
+  const unknown: string[] = [];
+  for (const cell of header) {
+    const name = canonical.get(cell.trim().toLowerCase());
+    if (name) {
+      columns.push(name);
+    } else {
+      unknown.push(cell.trim());
+    }
+  }
+
+  const errors: string[] = [];
+  if (unknown.length > 0) {
+    errors.push(`unknown column(s): ${unknown.join(", ")}`);
+  }
+  const missing = REQUIRED_COLUMNS.filter((name) => !columns.includes(name));
+  if (missing.length > 0) {
+    errors.push(`missing required column(s): ${missing.join(", ")}`);
+  }
+  if (errors.length > 0) {
+    return fail(errors);
+  }
+
+  const dataRows = table.slice(1);
+  if (dataRows.length > MAX_IMPORT_ROWS) {
+    return fail([
+      `the file has ${String(dataRows.length)} rows; the limit is ${String(MAX_IMPORT_ROWS)}`,
+    ]);
+  }
+
+  return ok(
+    dataRows.map((cells, index) => {
+      const raw: Record<string, string> = {};
+      columns.forEach((name, column) => {
+        raw[name] = cells[column] ?? "";
+      });
+      return { line: index + 2, raw };
+    }),
+  );
 }
 
 /**
