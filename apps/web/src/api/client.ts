@@ -9,6 +9,7 @@ import type {
   GroupBy,
   ImportReportDto,
   Page,
+  ReferenceDataDto,
   SalaryChangeRequest,
   SalaryDto,
   UpdateEmployeeRequest,
@@ -64,6 +65,10 @@ function toQueryString(params: Record<string, string | number | undefined>): str
  */
 export class ApiClient {
   constructor(private readonly options: ApiClientOptions) {}
+
+  reference(): Promise<ReferenceDataDto> {
+    return this.getJson("/api/reference");
+  }
 
   listEmployees(query: EmployeeListQuery = {}): Promise<Page<EmployeeDto>> {
     return this.getJson(`/api/employees${toQueryString({ ...query })}`);

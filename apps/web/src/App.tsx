@@ -4,6 +4,9 @@ import { AppLayout } from "./layout/AppLayout.js";
 import { LoginPage } from "./pages/LoginPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { SectionPlaceholder } from "./pages/SectionPlaceholder.js";
+import { DirectoryPage } from "./pages/DirectoryPage.js";
+import { EmployeePage } from "./pages/EmployeePage.js";
+import { NewEmployeePage } from "./pages/NewEmployeePage.js";
 
 /** Signed-out visitors see the sign-in page at any address. Signing in keeps the address they opened. */
 export function App(): React.JSX.Element {
@@ -16,15 +19,9 @@ export function App(): React.JSX.Element {
     <Routes>
       <Route element={<AppLayout />}>
         <Route index element={<Navigate to="/employees" replace />} />
-        <Route
-          path="employees"
-          element={
-            <SectionPlaceholder
-              title="Employees"
-              description="The employee directory is being built."
-            />
-          }
-        />
+        <Route path="employees" element={<DirectoryPage />} />
+        <Route path="employees/new" element={<NewEmployeePage />} />
+        <Route path="employees/:id" element={<EmployeePage />} />
         <Route
           path="analytics"
           element={
