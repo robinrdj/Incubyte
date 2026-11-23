@@ -4,3 +4,6 @@ build
 coverage
 package-lock.json
 apps/api/src/generated
+# Pre-existing folders outside this monorepo; not yet part of the submission.
+backend
+frontend

@@ -151,3 +151,21 @@ A running record of requests, decisions, and what was built in each step. Newest
 
 - `npm audit` reports 3 high-severity vulnerabilities in the dependency tree. I'll review them before deployment, in Stage 10.
 - The `reset` command is a user decision. If you want a one-step reset in the scripts, you need to approve it explicitly.
+
+---
+
+## 2026-11-23 — Repository moved to the Incubyte folder
+
+**User report:** `git log` could not find the history from the `Incubyte` folder. Git was initialized one level down, in `salary-management/`.
+
+**User decision:** Make `Incubyte/` the repository root.
+
+**Actions:**
+
+- Moved the project contents and `.git` from `salary-management/` up into `Incubyte/`. The commit history and both stage tags are unchanged, because the paths in the existing commits already match the new root.
+- Removed the empty `salary-management/` folder.
+- Re-linked the npm workspaces with `npm install`. The workspace links had pointed at the old absolute path.
+- Excluded `backend/` and `frontend/` from ESLint and Prettier. These folders existed before this session, are not in git, and are not part of this monorepo. ESLint was reporting errors from `frontend/src`.
+- Verified: `npm run check` passes (exit 0). Integration tests pass (6 of 6).
+
+**Left untouched:** `backend/` and `frontend/` remain untracked. Whether to bring them into the repo is the user's decision.

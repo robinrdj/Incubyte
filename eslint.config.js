@@ -10,6 +10,9 @@ export default tseslint.config(
       "**/coverage/**",
       "**/node_modules/**",
       "**/src/generated/**",
+      // Pre-existing folders outside this monorepo; not yet part of the submission.
+      "backend/**",
+      "frontend/**",
     ],
   },
   eslint.configs.recommended,
