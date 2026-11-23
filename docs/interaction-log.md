@@ -442,3 +442,53 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 
 - Maintaining FX rates and pay bands still has no screen or endpoint. This decision is needed before deployment.
 - Production hosting: serve the web app from the API, or enable CORS for a separate host. Decided in Stage 10.
+
+---
+
+## 2026-11-23 — Stage 8: Employee Management UI
+
+**User request:** Continue with Stage 8.
+
+**Design decisions:**
+
+- **Reference endpoint.** The forms need the lists of countries, departments, and levels, and no endpoint returned them. I added a read-only `GET /api/reference`. It is not the FX-rate and pay-band maintenance decision, which is still open.
+- **Pay band badge.** The employee list has no band field, so the directory loads the band-violation report once and marks the people in it. A report of about 0.4 s on 10,000 rows is acceptable for this.
+- **Only changed fields are sent.** Saving a profile sends a PATCH with just the fields that differ. Saving with no changes sends nothing.
+- **Salary history is append-only in the UI too.** The salary-change form refuses a date that is not after the current salary, and the API enforces the same rule.
+- **Validation mirrors the API.** The form checks the same rules the API enforces, so most mistakes are caught before a request. Server errors still appear in an alert.
+
+**What was built:**
+
+- API: `GET /api/reference`, its shared type, and an integration test (77 integration tests now pass).
+- Web:
+  - `pages/DirectoryPage.tsx`: search with a 300 ms pause, country, department, level, and status filters, pagination, a band badge, and an empty state.
+  - `pages/EmployeePage.tsx`: profile view and edit, current salary, salary timeline, and recording a salary change.
+  - `pages/NewEmployeePage.tsx`: creates an employee with an opening salary, then opens the profile.
+  - `components/`: `EmployeeForm`, `SalaryChangeForm`, `SalaryTimeline`, and `BandBadge`.
+  - `hooks/useAsync.ts`: loads data, ignores stale responses, and supports reload.
+  - `lib/format.ts` and `lib/errors.ts`: money and date display, and readable error messages.
+  - `test-utils/`: a route-based fake API, which records requests and returns 404 for any route it doesn't know about.
+
+**Verification:**
+
+- Web tests: 50 pass across 6 files. Tests cover filters, pagination, the band badge, the empty and error states, editing with a minimal PATCH, a conflict, invalid email, recording a salary change, the rule that a salary must take effect after the current one, not-found, and the new-employee flow with its duplicate-email error.
+- API: 131 unit and 77 integration tests pass. `npm run check` passes.
+- Lint is clean across the web app, API, and shared package.
+- Manual check against the local API, through the Vite dev proxy: `/health` returns 200, unauthenticated requests return 401, and authenticated reference and list requests return the seeded data.
+
+**Problems and fixes during the stage:**
+
+- The fake API matched the first route with a path, so an override placed after the default was ignored. Overrides now come first.
+- Mantine's Select options are not exposed with the `option` role under test. Tests now select them by their visible text.
+- ESLint flagged void arrow functions and un-awaited `navigate` promises. Fixed.
+- A port clash: port 5173 is used by your existing `frontend/` app, which is not part of this project. My dev server could not bind there, and the first curl check reached that app instead. I reran the check on port 5180, where the Salary Management app answered.
+
+**Not verified:**
+
+- **In a real browser.** The Claude-in-Chrome extension is not connected, so I could not open the screens visually. Layout, the phone-width navigation, and the look of the screens are still unchecked. Please open the app in your browser, or connect the extension and I will check it.
+- Import timing for a real 10,000-row write is still unmeasured.
+
+**Open decisions (unchanged):**
+
+- Maintaining FX rates and pay bands still has no screen or endpoint. This is needed before deployment.
+- Production hosting: serve the web app from the API, or enable CORS for a separate host. Decided in Stage 10.
