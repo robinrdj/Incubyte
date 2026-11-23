@@ -84,6 +84,14 @@ A running record of requests, decisions, and what was built in each step. Newest
 - `apps/web` is not created yet. It belongs to Stage 7, so the workspace list in the plan changes accordingly.
 - Docker host ports are 5434 (dev) and 5435 (test). A PostgreSQL 17 service already runs on 5432 on this machine.
 
-**Blocker (open):** The Docker Desktop engine did not start after launch and a two-minute wait. Compose config validates offline, but containers have not been started, so the "Postgres starts locally" criterion is not yet verified. Local PostgreSQL services are running, but the password is unknown, so I have not used them.
+**Docker status:** The Docker Desktop engine did not start after launch and a two-minute wait. Compose config validates offline, but containers were not started.
 
-**To unblock:** Start Docker Desktop manually and run `docker compose up -d`. Alternatively, provide credentials for a local PostgreSQL database named `salary`, and we can point `.env` at it.
+**Local PostgreSQL (resolved):**
+
+- The user provided the local `postgres` superuser password.
+- Two local servers run. Port 5432 is PostgreSQL 17 and rejects this password. Port 5433 is PostgreSQL 18.6 and accepts it.
+- Created the `salary` and `salary_test` databases on port 5433.
+- Wrote `.env` (gitignored) with both URLs. The password is kept only in that file and is not recorded in tracked files.
+- Verified both URLs connect (`salary ok, 18.6` and `salary_test ok, 18.6`).
+
+**Stage 0 status:** Every criterion is met except a verified Docker Compose run. The local server stands in for the containers. The compose file still needs to be tested once Docker is available.
