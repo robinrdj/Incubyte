@@ -337,6 +337,61 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 
 **Not covered yet:**
 
-- Import performance at the full 10,000-row limit. Stage 6 will measure it alongside the seed.
+- Import performance: measured in dry-run only, at 10,000 rows (about 1.1 s). A real write of 10,000 new rows has not been timed yet.
 - Import is one transaction, so a very large file holds locks for its whole duration. This is acceptable for a single-user HR tool. Production would process in batches.
 - Email matching is exact after lower-casing. Employees seeded or imported before this rule existed must already be lower-case. The seed will enforce that.
+
+---
+
+## 2026-11-23 — Stage 6: Seed Data Generation
+
+**User request:** Start Stage 6.
+
+**Design decisions:**
+
+- **Reproducible.** Generation is pure. It uses a seeded generator (mulberry32), so the same seed gives the same dataset. Employee IDs are seeded too, so the loader writes the same rows every time.
+- **Reference data included.** The seed loads countries, departments, levels, sample FX rates, and pay bands. This fills the gap noted in Stage 4: analytics had nothing to report on until now.
+- **Safe by default.** The loader refuses to write into a database that already holds data. `--reset` is required to replace it.
+- **Batched writes.** Rows are written in batches of 1,000, with one query per batch.
+
+**What was built:**
+
+- `seed/random.ts`: seeded generator, with integer, weighted, and UUID helpers.
+- `seed/dataset.ts`: pure generator. It produces 10 countries, 6 departments, 6 levels, 14 FX rates (two dates), 60 pay bands, and the employees with their salary history.
+- `seed/load.ts`: batched loader. Returns a report of counts and elapsed time.
+- `seed/run.ts`: CLI with `--reset` and `--seed=N`. Exposed as `npm run seed` in `apps/api`.
+
+**Sample-data choices:**
+
+- Pay rises with level and varies by country cost factor, from 0.2 for India to 1.0 for the US.
+- Starting pay varies by up to ±12% around the expected figure.
+- About 30% of employees get one raise, dated after their start date and before the anchor date (2026-11-23).
+- About 5% of employees are LEAVING.
+- Pay bands are 90% to 110% of expected pay. The first version used 85% to 115%, which made every violation fall above the band, since starting pay could never fall below 88%. The bands were widened so violations appear on both sides.
+- The sample rate for a date before the first rate table (2025-01-01) uses that first rate. This is documented in the code.
+
+**Verification:**
+
+- Unit tests: 131 pass. They cover reproducibility, counts, uniqueness of codes and emails, lower-case emails, band coverage for every employee, the salary-history rules, and the presence of violations on both sides.
+- Integration tests: 75 pass across 5 files. The new seed tests load the full 10,000-employee dataset against the time budget, refuse to load into a populated database, and check that the same seed stores identical rows.
+- The seed was run against the local dev database, with real timings:
+  - Generation: 110 to 119 ms.
+  - Load: 6.7 to 7.6 seconds for 10,000 employees, 12,762 salary records, and 12,762 audit events.
+  - Stated budget: 60 seconds.
+- Re-running without `--reset` is refused with a clear message.
+
+**Analytics on the full 10,000 employees (live server, local database):**
+
+- Compensation by country: 0.78 seconds on the first request, including warm-up.
+- Band violations: 0.42 seconds. Result: 9,501 evaluated, 0 without a band, 2,515 violations (2,294 above, 221 below).
+- CSV export of 10,000 rows: 0.41 seconds.
+- Both targets are met, so the performance question left open in Stage 4 is closed.
+
+**Import timing:** A dry-run import of the full 10,000-row export took 1.1 seconds, and all rows came back unchanged. This confirms the round trip at scale. A real write of 10,000 new rows has not been timed yet.
+
+**Credentials:** The seed uses no credentials of its own. It reads `DATABASE_URL` from the gitignored `.env`.
+
+**Known gaps for later:**
+
+- The seed's FX rates and pay bands are illustrative. HR needs a way to maintain them. This is still the main open decision before deployment.
+- Import writes are not timed at scale yet.

@@ -93,6 +93,18 @@ Every `/api` route requires HTTP Basic authentication. `GET /health` is public.
 | POST   | `/api/employees/import`             | Import employees from a CSV body (`Content-Type: text/csv`, max 5 MB, 10,000 rows). Valid rows are applied; rejected rows are reported by line. Add `?dryRun=true` to validate only. Re-running the same file creates no duplicates. |
 | GET    | `/api/employees/export.csv`         | Export employees matching the list filters, in the same columns the import accepts.                                                                                                                                                  |
 
+### Seed data
+
+`npm run seed` (in `apps/api`) loads 10,000 reproducible employees across 10 countries, with reference data, sample FX rates, and pay bands. The same seed always produces the same data.
+
+| Command                    | Purpose                                                             |
+| -------------------------- | ------------------------------------------------------------------- |
+| `npm run seed`             | Load into an empty database. Refuses to run if data already exists. |
+| `npm run seed -- --reset`  | Delete all salary data, then load the seed.                         |
+| `npm run seed -- --seed=7` | Use a different seed (still reproducible).                          |
+
+On a local PostgreSQL instance the full load takes about 7 seconds. The stated budget is 60 seconds. The sample figures are illustrative and are not market data.
+
 ### CSV format
 
 Columns (header names are case-insensitive; unknown or missing required columns fail the whole file):
