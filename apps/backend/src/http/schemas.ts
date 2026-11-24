@@ -71,11 +71,28 @@ export const updateEmployeeSchema = z
 
 export const salaryChangeSchema = salaryInputSchema;
 
+/** A comma-separated list, e.g. "DE,IN". A single value works too. */
+function listOf(item: z.ZodType<string, string>) {
+  return z
+    .string()
+    .optional()
+    .transform((value) =>
+      value === undefined
+        ? undefined
+        : value
+            .split(",")
+            .map((part) => part.trim())
+            .filter((part) => part !== ""),
+    )
+    .pipe(z.array(item).max(50).optional())
+    .transform((values) => (values === undefined || values.length === 0 ? undefined : values));
+}
+
 export const employeeFilterSchema = z.object({
   search: z.string().trim().max(100).optional(),
-  countryCode: countryCode.optional(),
-  departmentName: departmentName.optional(),
-  levelCode: levelCode.optional(),
+  countryCode: listOf(countryCode),
+  departmentName: listOf(departmentName),
+  levelCode: listOf(levelCode),
   status: employeeStatusSchema.optional(),
 });
 

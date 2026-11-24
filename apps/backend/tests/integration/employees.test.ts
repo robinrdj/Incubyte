@@ -201,6 +201,22 @@ describe("listing employees", () => {
     expect(byLevel.body.total).toBe(2);
   });
 
+  it("accepts several values per filter, matching any of them", async () => {
+    const bothCountries = await request(app)
+      .get("/api/employees?countryCode=IN,DE")
+      .set("Authorization", AUTH_HEADER);
+    const levels = await request(app)
+      .get("/api/employees?levelCode=L3,L1")
+      .set("Authorization", AUTH_HEADER);
+    const unknown = await request(app)
+      .get("/api/employees?countryCode=IN,germany")
+      .set("Authorization", AUTH_HEADER);
+
+    expect(bothCountries.body.total).toBe(3);
+    expect(levels.body.total).toBe(3);
+    expect(unknown.status).toBe(400);
+  });
+
   it("searches names and email case-insensitively", async () => {
     const response = await request(app)
       .get("/api/employees?search=TURING")
