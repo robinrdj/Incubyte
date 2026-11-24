@@ -136,6 +136,8 @@ npm run seed        # load the 10,000 employees, default FX rates, and pay bands
 Remove-Item Env:DIRECT_DATABASE_URL
 ```
 
+In both Neon strings, change `sslmode=require` to `sslmode=verify-full`. The `pg` driver already treats `require` as `verify-full` (it checks the certificate and host name), but warns that a future major version will weaken `require` to libpq semantics. Writing `verify-full` keeps the strict check and silences the warning.
+
 Both commands print the host and database they target, never the password. Keep the API in the same region as the database, because every request makes database round trips.
 
 ### Seed data
