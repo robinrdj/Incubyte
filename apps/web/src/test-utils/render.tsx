@@ -15,7 +15,10 @@ export const TEST_PASSWORD = "correct-horse-battery";
 
 /** Starts the test signed in, by writing the session the same way a real sign-in does. */
 export function signedIn(): void {
-  window.sessionStorage.setItem("salary.session", toBase64(`hr:${TEST_PASSWORD}`));
+  window.sessionStorage.setItem(
+    "salary.session",
+    toBase64(`hr.manager@acme.test:${TEST_PASSWORD}`),
+  );
 }
 
 /** Renders children inside the same providers the app uses, at the given address. */

@@ -6,9 +6,9 @@ import { MemoryRouter } from "react-router";
 import { App } from "./App.js";
 import { AuthProvider } from "./auth/AuthContext.js";
 
-const USERNAME = "hr";
+const EMAIL = "hr.manager@acme.test";
 const PASSWORD = "correct-horse-battery";
-const EXPECTED_AUTH = `Basic ${btoa(`${USERNAME}:${PASSWORD}`)}`;
+const EXPECTED_AUTH = `Basic ${btoa(`${EMAIL}:${PASSWORD}`)}`;
 
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -53,22 +53,25 @@ function renderApp(initialPath = "/") {
 
 async function signIn(
   user: ReturnType<typeof userEvent.setup>,
-  username: string,
+  email: string,
   password: string,
 ): Promise<void> {
-  await user.type(screen.getByLabelText(/^username/i), username);
+  await user.type(screen.getByLabelText(/^email/i), email);
   await user.type(screen.getByLabelText(/^password/i), password);
   await user.click(screen.getByRole("button", { name: "Sign in" }));
 }
 
 beforeEach(() => {
   window.sessionStorage.clear();
+  vi.stubEnv("VITE_DEMO_EMAIL", "");
+  vi.stubEnv("VITE_DEMO_PASSWORD", "");
   fakeApi();
 });
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("sign-in", () => {
@@ -82,7 +85,7 @@ describe("sign-in", () => {
     const user = userEvent.setup();
     renderApp("/");
 
-    await signIn(user, USERNAME, PASSWORD);
+    await signIn(user, EMAIL, PASSWORD);
 
     expect(await screen.findByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Employees" })).toBeInTheDocument();
@@ -92,16 +95,16 @@ describe("sign-in", () => {
     const user = userEvent.setup();
     renderApp("/");
 
-    await signIn(user, USERNAME, "wrong-password");
+    await signIn(user, EMAIL, "wrong-password");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Incorrect username or password.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Incorrect email or password.");
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
   });
 
   it("keeps the session across a reload within the same tab", async () => {
     const user = userEvent.setup();
     const first = renderApp("/");
-    await signIn(user, USERNAME, PASSWORD);
+    await signIn(user, EMAIL, PASSWORD);
     await screen.findByRole("navigation", { name: "Main navigation" });
     first.unmount();
 
@@ -113,7 +116,7 @@ describe("sign-in", () => {
   it("signs out and returns to the sign-in form", async () => {
     const user = userEvent.setup();
     renderApp("/");
-    await signIn(user, USERNAME, PASSWORD);
+    await signIn(user, EMAIL, PASSWORD);
     await screen.findByRole("navigation", { name: "Main navigation" });
 
     await user.click(screen.getByRole("button", { name: "Sign out" }));
@@ -123,11 +126,63 @@ describe("sign-in", () => {
   });
 });
 
+describe("signing in with an email", () => {
+  it("accepts the email in any letter case", async () => {
+    const user = userEvent.setup();
+    renderApp("/");
+
+    await signIn(user, "HR.Manager@ACME.test", PASSWORD);
+
+    expect(await screen.findByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
+  });
+
+  it("asks for a valid email without calling the API", async () => {
+    const user = userEvent.setup();
+    renderApp("/");
+
+    await signIn(user, "hr", PASSWORD);
+
+    expect(await screen.findByText("Enter your work email address.")).toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("shows who is signed in", async () => {
+    const user = userEvent.setup();
+    renderApp("/");
+
+    await signIn(user, EMAIL, PASSWORD);
+
+    expect(await screen.findByText(EMAIL)).toBeInTheDocument();
+  });
+});
+
+describe("demo account", () => {
+  it("is hidden when no demo account is configured", () => {
+    renderApp("/");
+
+    expect(screen.queryByRole("button", { name: "Use demo account" })).not.toBeInTheDocument();
+  });
+
+  it("shows the demo credentials and fills them in", async () => {
+    vi.stubEnv("VITE_DEMO_EMAIL", EMAIL);
+    vi.stubEnv("VITE_DEMO_PASSWORD", PASSWORD);
+    const user = userEvent.setup();
+    renderApp("/");
+
+    expect(screen.getByText(EMAIL)).toBeInTheDocument();
+    expect(screen.getByText(PASSWORD)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Use demo account" }));
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(await screen.findByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
+  });
+});
+
 describe("navigation", () => {
   it("sends the root address to the employees section", async () => {
     const user = userEvent.setup();
     renderApp("/");
-    await signIn(user, USERNAME, PASSWORD);
+    await signIn(user, EMAIL, PASSWORD);
 
     expect(await screen.findByRole("heading", { name: "Employees", level: 2 })).toBeInTheDocument();
   });
@@ -135,7 +190,7 @@ describe("navigation", () => {
   it("moves between sections from the navigation", async () => {
     const user = userEvent.setup();
     renderApp("/");
-    await signIn(user, USERNAME, PASSWORD);
+    await signIn(user, EMAIL, PASSWORD);
     await screen.findByRole("navigation", { name: "Main navigation" });
 
     await user.click(screen.getByRole("link", { name: "Analytics" }));
@@ -148,7 +203,7 @@ describe("navigation", () => {
   it("shows a not-found page for an unknown address", async () => {
     const user = userEvent.setup();
     renderApp("/no-such-page");
-    await signIn(user, USERNAME, PASSWORD);
+    await signIn(user, EMAIL, PASSWORD);
 
     expect(await screen.findByRole("heading", { name: "Page not found" })).toBeInTheDocument();
   });

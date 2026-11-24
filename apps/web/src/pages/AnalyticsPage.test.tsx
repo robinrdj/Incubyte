@@ -63,12 +63,9 @@ describe("analytics dashboard", () => {
   it("shows the overall figures in US dollars", async () => {
     renderAt("/analytics", <AnalyticsPage />);
 
-    const median = (await screen.findByText("Median", { selector: "p" })).parentElement;
-    expect(median).toHaveTextContent("$66,000.00");
-    expect(screen.getByText("Average", { selector: "p" }).parentElement).toHaveTextContent(
-      "$74,120.00",
-    );
-    expect(screen.getByText("5")).toBeInTheDocument();
+    expect(await screen.findByRole("group", { name: "Median" })).toHaveTextContent("$66,000.00");
+    expect(screen.getByRole("group", { name: "Average" })).toHaveTextContent("$74,120.00");
+    expect(screen.getByRole("group", { name: "Headcount" })).toHaveTextContent("5");
   });
 
   it("shows one row per group with its figures", async () => {

@@ -156,20 +156,44 @@ describe("pay bands", () => {
     return screen.findByRole("table", { name: "Pay bands in Germany" });
   }
 
-  it("lists every level for the country, marking levels without a band", async () => {
+  function rowFor(table: HTMLElement, level: string): HTMLElement {
+    const cell = within(table).getByText(level);
+    const row = cell.closest("tr");
+    if (row === null) throw new Error(`no row for ${level}`);
+    return row;
+  }
+
+  it("shows each level's band, with Add for levels that have none", async () => {
     install();
     const user = userEvent.setup();
     const table = await openBands(user);
+
+    const l3 = rowFor(table, "L3");
+    expect(l3).toHaveTextContent("€80,000.00");
+    expect(l3).toHaveTextContent("€100,000.00");
+    expect(within(l3).getByRole("button", { name: "Edit L3 band" })).toBeEnabled();
+    expect(within(table).getAllByText("Not set")).toHaveLength(2);
+    expect(within(table).getByRole("button", { name: "Add L1 band" })).toBeInTheDocument();
+    expect(within(table).queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  it("opens the row for editing with the current values and Save ready", async () => {
+    install();
+    const user = userEvent.setup();
+    const table = await openBands(user);
+
+    await user.click(within(table).getByRole("button", { name: "Edit L3 band" }));
 
     expect(within(table).getByRole("textbox", { name: "L3 minimum" })).toHaveValue("80000.00");
     expect(within(table).getByRole("textbox", { name: "L3 maximum" })).toHaveValue("100000.00");
-    expect(within(table).getAllByText("Not set")).toHaveLength(2);
+    expect(within(table).getByRole("button", { name: "Save L3 band" })).toBeEnabled();
   });
 
-  it("saves a changed band", async () => {
+  it("saves a changed band and shows it", async () => {
     install();
     const user = userEvent.setup();
     const table = await openBands(user);
+    await user.click(within(table).getByRole("button", { name: "Edit L3 band" }));
 
     const min = within(table).getByRole("textbox", { name: "L3 minimum" });
     const max = within(table).getByRole("textbox", { name: "L3 maximum" });
@@ -180,14 +204,41 @@ describe("pay bands", () => {
     await user.click(within(table).getByRole("button", { name: "Save L3 band" }));
 
     expect(await within(table).findByRole("status")).toHaveTextContent("Saved");
+    expect(rowFor(table, "L3")).toHaveTextContent("€85,000.00");
     expect(puts()[0]?.url).toBe("/api/settings/pay-bands/DE/L3");
     expect(puts()[0]?.body).toEqual({ minAmount: "85000", maxAmount: "105000" });
+  });
+
+  it("closes without saving when nothing changed", async () => {
+    install();
+    const user = userEvent.setup();
+    const table = await openBands(user);
+    await user.click(within(table).getByRole("button", { name: "Edit L3 band" }));
+
+    await user.click(within(table).getByRole("button", { name: "Save L3 band" }));
+
+    expect(within(table).getByRole("button", { name: "Edit L3 band" })).toBeInTheDocument();
+    expect(puts()).toHaveLength(0);
+  });
+
+  it("discards edits on Cancel", async () => {
+    install();
+    const user = userEvent.setup();
+    const table = await openBands(user);
+    await user.click(within(table).getByRole("button", { name: "Edit L3 band" }));
+    await user.clear(within(table).getByRole("textbox", { name: "L3 minimum" }));
+
+    await user.click(within(table).getByRole("button", { name: "Cancel editing L3 band" }));
+
+    expect(rowFor(table, "L3")).toHaveTextContent("€80,000.00");
+    expect(puts()).toHaveLength(0);
   });
 
   it("refuses a maximum below the minimum without calling the API", async () => {
     install();
     const user = userEvent.setup();
     const table = await openBands(user);
+    await user.click(within(table).getByRole("button", { name: "Edit L3 band" }));
 
     const max = within(table).getByRole("textbox", { name: "L3 maximum" });
     await user.clear(max);
@@ -200,14 +251,6 @@ describe("pay bands", () => {
     expect(puts()).toHaveLength(0);
   });
 
-  it("keeps Save disabled until a value changes", async () => {
-    install();
-    const user = userEvent.setup();
-    const table = await openBands(user);
-
-    expect(within(table).getByRole("button", { name: "Save L3 band" })).toBeDisabled();
-  });
-
   it("shows another country's bands when the country changes", async () => {
     install();
     const user = userEvent.setup();
@@ -218,7 +261,7 @@ describe("pay bands", () => {
 
     const table = await screen.findByRole("table", { name: "Pay bands in India" });
     await waitFor(() => {
-      expect(within(table).getByRole("textbox", { name: "L1 minimum" })).toHaveValue("800000.00");
+      expect(rowFor(table, "L1")).toHaveTextContent("₹800,000.00");
     });
   });
 });
