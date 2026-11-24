@@ -281,3 +281,23 @@ describe("opening an employee", () => {
     open.mockRestore();
   });
 });
+
+describe("pay band badges", () => {
+  it("asks only about the employees on the page, not the whole company", async () => {
+    recorded = installFakeApi([
+      { method: "GET", path: "/api/reference", body: REFERENCE },
+      { method: "GET", path: "/api/employees", body: page([ADA, GRACE]) },
+      { method: "GET", path: "/api/analytics/band-violations", body: bandReport() },
+    ]);
+
+    renderAt("/employees", <DirectoryPage />);
+    await screen.findByRole("table", { name: "Employees" });
+
+    await waitFor(() => {
+      const request = recorded.find((r) => r.url.startsWith("/api/analytics/band-violations"));
+      expect(new URL(request?.url ?? "", "http://x").searchParams.get("employeeIds")).toBe(
+        `${ADA.id},${GRACE.id}`,
+      );
+    });
+  });
+});

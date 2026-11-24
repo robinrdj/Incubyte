@@ -69,5 +69,17 @@ export const SALARY_HISTORY: SalaryDto[] = [
 ];
 
 export function bandReport(items: BandViolationReportDto["items"] = []): BandViolationReportDto {
-  return { asOf: "2026-11-23", currency: "USD", evaluated: 1, withoutBand: 0, items };
+  const below = items.filter((item) => item.position === "BELOW").length;
+  return {
+    asOf: "2026-11-23",
+    currency: "USD",
+    evaluated: Math.max(1, items.length),
+    withoutBand: 0,
+    below,
+    above: items.length - below,
+    total: items.length,
+    page: 1,
+    pageSize: Math.max(1, items.length),
+    items,
+  };
 }

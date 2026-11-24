@@ -19,7 +19,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import type { BandViolationReportDto, CompensationReportDto, GroupBy } from "@salary/shared";
+import type { CompensationReportDto, GroupBy } from "@salary/shared";
 import {
   IconArrowDownRight,
   IconArrowUpRight,
@@ -27,7 +27,7 @@ import {
   IconMathAvg,
   IconUsers,
 } from "@tabler/icons-react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useAuth } from "../auth/AuthContext.js";
 import { BandBadge } from "../components/BandBadge.js";
@@ -76,10 +76,6 @@ export function AnalyticsPage(): React.JSX.Element {
   );
 
   const compensation = useAsync(loadCompensation, [groupBy, asOf]);
-  const bands = useAsync(
-    (date: string) => api.bandViolations(date === "" ? undefined : date),
-    [asOf],
-  );
 
   const firstLoaded = compensation.data !== undefined;
   useEffect(() => {
@@ -149,7 +145,8 @@ export function AnalyticsPage(): React.JSX.Element {
         <CompensationView report={compensation.data} updating={updating} />
       )}
 
-      <BandViolationsCard report={bands.data} loading={bands.loading} error={bands.error} />
+      {/* Keyed by date, so a new date starts again at page 1 with no filter. */}
+      <BandViolationsCard key={asOf} asOf={asOf} />
     </Stack>
   );
 }
@@ -271,39 +268,36 @@ function CompensationSkeleton(): React.JSX.Element {
 type PositionFilter = "ALL" | "BELOW" | "ABOVE";
 
 /**
- * Employees outside their band, furthest from the band first, a page at a time. Memoised so that
- * changing the grouping above does not re-render this list: it can hold thousands of people.
+ * Employees outside their band, a page at a time. The server sorts (furthest from the band first),
+ * filters, and pages, so the browser receives 25 rows rather than thousands. Memoised so that
+ * changing the grouping above does not re-render it.
  */
 const BandViolationsCard = memo(function BandViolationsCard({
-  report,
-  loading,
-  error,
+  asOf,
 }: {
-  report: BandViolationReportDto | undefined;
-  loading: boolean;
-  error: unknown;
+  asOf: string;
 }): React.JSX.Element {
+  const { api } = useAuth();
   const rowLink = useRowLink();
   const [filter, setFilter] = useState<PositionFilter>("ALL");
   const [page, setPage] = useState(1);
 
-  const counts = useMemo(() => {
-    const items = report?.items ?? [];
-    const below = items.filter((item) => item.position === "BELOW").length;
-    return { below, above: items.length - below };
-  }, [report]);
-
-  const sorted = useMemo(
-    () =>
-      (report?.items ?? [])
-        .filter((item) => filter === "ALL" || item.position === filter)
-        .sort((a, b) => Math.abs(b.compaRatio - 1) - Math.abs(a.compaRatio - 1)),
-    [report, filter],
+  const result = useAsync(
+    (date: string, position: PositionFilter, pageNumber: number) =>
+      api.bandViolations({
+        ...(date === "" ? {} : { asOf: date }),
+        ...(position === "ALL" ? {} : { position }),
+        page: pageNumber,
+        pageSize: BAND_PAGE_SIZE,
+      }),
+    [asOf, filter, page],
   );
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / BAND_PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const visible = sorted.slice((currentPage - 1) * BAND_PAGE_SIZE, currentPage * BAND_PAGE_SIZE);
+  const report = result.data;
+  const refreshing = result.loading && report !== undefined;
+  const totalPages =
+    report === undefined ? 1 : Math.max(1, Math.ceil(report.total / BAND_PAGE_SIZE));
+  const outside = report === undefined ? 0 : report.below + report.above;
+  const firstRow = report === undefined ? 0 : (report.page - 1) * BAND_PAGE_SIZE + 1;
 
   return (
     <Card>
@@ -314,7 +308,7 @@ const BandViolationsCard = memo(function BandViolationsCard({
             Furthest from their band first. Compa-ratio is salary divided by the band midpoint.
           </Text>
         </div>
-        {report !== undefined && report.items.length > 0 && (
+        {report !== undefined && outside > 0 && (
           <SegmentedControl
             size="xs"
             value={filter}
@@ -323,22 +317,22 @@ const BandViolationsCard = memo(function BandViolationsCard({
               setPage(1);
             }}
             data={[
-              { value: "ALL", label: `All ${report.items.length.toLocaleString("en-US")}` },
-              { value: "BELOW", label: `Below ${counts.below.toLocaleString("en-US")}` },
-              { value: "ABOVE", label: `Above ${counts.above.toLocaleString("en-US")}` },
+              { value: "ALL", label: `All ${outside.toLocaleString("en-US")}` },
+              { value: "BELOW", label: `Below ${report.below.toLocaleString("en-US")}` },
+              { value: "ABOVE", label: `Above ${report.above.toLocaleString("en-US")}` },
             ]}
             aria-label="Show employees"
           />
         )}
       </Group>
 
-      {error !== null && (
+      {result.error !== null && (
         <Alert color="red" role="alert" variant="light" mt="md">
-          {errorMessage(error)}
+          {errorMessage(result.error)}
         </Alert>
       )}
 
-      {report === undefined && loading && (
+      {report === undefined && result.loading && (
         <Stack gap="sm" mt="lg" aria-busy="true" aria-label="Loading pay bands">
           {Array.from({ length: 5 }, (_, index) => (
             <Skeleton key={index} height={28} radius="sm" />
@@ -350,16 +344,20 @@ const BandViolationsCard = memo(function BandViolationsCard({
         <>
           <Group gap="xs" mt="md" mb="md">
             <Badge color="gray">{report.evaluated.toLocaleString("en-US")} evaluated</Badge>
-            <Badge color="orange">{report.items.length.toLocaleString("en-US")} outside</Badge>
+            <Badge color="orange">{outside.toLocaleString("en-US")} outside</Badge>
             {report.withoutBand > 0 && (
               <Badge color="red">{report.withoutBand.toLocaleString("en-US")} without a band</Badge>
             )}
           </Group>
-          {report.items.length === 0 ? (
+          {outside === 0 ? (
             <Text>Everyone evaluated is within their band.</Text>
           ) : (
             <>
-              <Table.ScrollContainer minWidth={760}>
+              <Table.ScrollContainer
+                minWidth={760}
+                aria-busy={refreshing}
+                style={{ opacity: refreshing ? 0.55 : 1, transition: "opacity 150ms ease" }}
+              >
                 <Table aria-label="Employees outside their pay band">
                   <Table.Thead>
                     <Table.Tr>
@@ -373,7 +371,7 @@ const BandViolationsCard = memo(function BandViolationsCard({
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
-                    {visible.map((item) => (
+                    {report.items.map((item) => (
                       <Table.Tr key={item.employeeId} {...rowLink(`/employees/${item.employeeId}`)}>
                         <Table.Td>
                           <Link to={`/employees/${item.employeeId}`}>
@@ -397,14 +395,14 @@ const BandViolationsCard = memo(function BandViolationsCard({
               </Table.ScrollContainer>
               <Group justify="space-between" mt="md" wrap="wrap">
                 <Text size="sm" c="dimmed">
-                  Showing {((currentPage - 1) * BAND_PAGE_SIZE + 1).toLocaleString("en-US")}–
-                  {Math.min(currentPage * BAND_PAGE_SIZE, sorted.length).toLocaleString("en-US")} of{" "}
-                  {sorted.length.toLocaleString("en-US")}
+                  Showing {firstRow.toLocaleString("en-US")}–
+                  {(firstRow + report.items.length - 1).toLocaleString("en-US")} of{" "}
+                  {report.total.toLocaleString("en-US")}
                 </Text>
                 {totalPages > 1 && (
                   <Pagination
                     total={totalPages}
-                    value={currentPage}
+                    value={page}
                     onChange={setPage}
                     size="sm"
                     aria-label="Out-of-band pages"

@@ -37,7 +37,10 @@ export function EmployeePage(): React.JSX.Element {
   const { api } = useAuth();
   const employee = useAsync((employeeId: string) => api.getEmployee(employeeId), [id]);
   const history = useAsync((employeeId: string) => api.salaryHistory(employeeId), [id]);
-  const bands = useAsync(() => api.bandViolations(), []);
+  const bands = useAsync(
+    (employeeId: string) => api.bandViolations({ employeeIds: [employeeId] }),
+    [id],
+  );
   const reference = useAsync(() => api.reference(), []);
 
   const [editing, setEditing] = useState(false);

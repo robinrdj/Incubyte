@@ -54,7 +54,6 @@ export function DirectoryPage(): React.JSX.Element {
 
   const rowLink = useRowLink();
   const reference = useAsync(() => api.reference(), []);
-  const bands = useAsync(() => api.bandViolations(), []);
 
   /** The filters as the list applies them. The export uses the same object, so they always match. */
   const filters: EmployeeFilters = {
@@ -86,6 +85,14 @@ export function DirectoryPage(): React.JSX.Element {
     }
   }
 
+  // Band positions for the people on this page only: a few hundred bytes, rather than the whole
+  // out-of-band report for 10,000 employees.
+  const pageIds = (directory.data?.items ?? []).map((employee) => employee.id).join(",");
+  const bands = useAsync(
+    (ids: string) =>
+      ids === "" ? Promise.resolve(undefined) : api.bandViolations({ employeeIds: ids.split(",") }),
+    [pageIds],
+  );
   const bandByEmployee = useMemo(
     () => new Map((bands.data?.items ?? []).map((item) => [item.employeeId, item.position])),
     [bands.data],

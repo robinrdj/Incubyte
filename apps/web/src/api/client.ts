@@ -1,6 +1,7 @@
 import type {
   ApiErrorBody,
   AuditEventDto,
+  BandViolationQuery,
   BandViolationReportDto,
   CompensationReportDto,
   CreateEmployeeRequest,
@@ -118,8 +119,15 @@ export class ApiClient {
     return this.getJson(`/api/analytics/compensation${toQueryString({ groupBy, asOf })}`);
   }
 
-  bandViolations(asOf?: string): Promise<BandViolationReportDto> {
-    return this.getJson(`/api/analytics/band-violations${toQueryString({ asOf })}`);
+  bandViolations(query: BandViolationQuery = {}): Promise<BandViolationReportDto> {
+    const params = toQueryString({
+      asOf: query.asOf,
+      employeeIds: query.employeeIds?.join(","),
+      position: query.position,
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+    return this.getJson(`/api/analytics/band-violations${params}`);
   }
 
   importEmployees(csv: string, dryRun: boolean): Promise<ImportReportDto> {
