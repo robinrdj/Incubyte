@@ -738,3 +738,27 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
   - The production build served `/employees` (200).
 
 **Known gap:** `npm audit` reports 3 high-severity advisories in `effect`, which Prisma's CLI pulls in through `@prisma/config`. The offered fix downgrades Prisma to 6, a breaking change. The affected code is a ReDoS in a schema helper that runs only at build and migration time, never on request input, so Prisma stays on 7 until it updates the dependency.
+
+---
+
+## 2026-11-24 — Stage 10, step 2: API live on Render, and faster analytics
+
+**User request:** "Render is deployed, here's the URL." The API is at `https://incubyte-c172.onrender.com`.
+
+**Checks against the live API:**
+
+- `/health` returns 200.
+- A request with no login gets 401.
+- A request from the app gets no Basic challenge, and curl still gets one.
+- The demo sign-in returns all 10,000 employees from Neon.
+
+**Problem found:** analytics took 6–7 s per request on Render, even when warm, while an employee page took 0.7 s. Render's free plan gives 0.1 CPU. The analytics loader used the ORM with nested includes, which made about five queries and built a full object (with decimal values) for each of 10,000 employees. That costs about 0.5 s on a laptop and roughly ten times more on 0.1 CPU. The web app also prefetches the other groupings, so opening Analytics ran three of these at once.
+
+**Fix:** a single SQL query (`$queryRaw`) that picks each active employee's current salary in the database with `DISTINCT ON` the latest record on or before the date. It returns only the columns the analytics use, with amounts as text so no precision is lost. Conversion, median, and band checks stay in the existing tested domain functions, so the figures cannot change.
+
+**Verification:**
+
+- All 98 integration tests pass, including the analytics fixtures with hand-calculated figures.
+- On the local 10,000-employee data, the old and new builds give identical compensation output for every grouping, and the same out-of-band people and figures.
+- Locally, a grouping takes 0.09–0.26 s instead of 0.26–0.50 s, and the band report 0.17 s instead of 0.27 s.
+- The time on Render is measured after this is deployed.
