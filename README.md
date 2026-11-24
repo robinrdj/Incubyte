@@ -93,7 +93,7 @@ Integration tests refuse to run against any database whose name does not end in 
 
 ## API
 
-Run with `npm run build` then `npm start` in `apps/api` (set the variables in `.env`).
+Locally, run `npm run dev` in `apps/api`. It builds the API and starts it on port 4000 with the variables from the root `.env`. In production, `npm start` runs the built API and the host supplies the variables.
 Every `/api` route requires HTTP Basic authentication. `GET /health` is public.
 
 | Method | Path                                              | Purpose                                                                                                                                                                                                                              |
