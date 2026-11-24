@@ -66,7 +66,7 @@ function ExportCard(): React.JSX.Element {
   }
 
   return (
-    <Card withBorder radius="md" padding="lg">
+    <Card>
       <Title order={4}>Export employees</Title>
       <Group align="flex-end" mt="md" wrap="wrap">
         <Select
@@ -155,7 +155,7 @@ function ImportCard(): React.JSX.Element {
   const canApply = checked !== null && checked.report.created + checked.report.updated > 0;
 
   return (
-    <Card withBorder radius="md" padding="lg">
+    <Card>
       <Title order={4}>Import employees</Title>
       <Text size="sm" c="dimmed" mb="md">
         Check the file first to see what would change. Rows with errors are skipped, and the rest

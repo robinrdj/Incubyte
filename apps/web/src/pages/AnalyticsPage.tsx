@@ -10,8 +10,16 @@ import {
   Table,
   Text,
   TextInput,
+  ThemeIcon,
   Title,
 } from "@mantine/core";
+import {
+  IconArrowDownRight,
+  IconArrowUpRight,
+  IconChartBar,
+  IconMathAvg,
+  IconUsers,
+} from "@tabler/icons-react";
 import type { GroupBy } from "@salary/shared";
 import { useState } from "react";
 import { Link } from "react-router";
@@ -103,11 +111,31 @@ export function AnalyticsPage(): React.JSX.Element {
       ) : compensation.data !== undefined ? (
         <>
           <SimpleGrid cols={{ base: 2, sm: 3, lg: 5 }}>
-            <Stat label="Headcount" value={String(compensation.data.overall.headcount)} />
-            <Stat label="Median" value={money(compensation.data.overall.medianUsd)} />
-            <Stat label="Average" value={money(compensation.data.overall.averageUsd)} />
-            <Stat label="Lowest" value={money(compensation.data.overall.minUsd)} />
-            <Stat label="Highest" value={money(compensation.data.overall.maxUsd)} />
+            <Stat
+              label="Headcount"
+              value={compensation.data.overall.headcount.toLocaleString("en-US")}
+              icon={IconUsers}
+            />
+            <Stat
+              label="Median"
+              value={money(compensation.data.overall.medianUsd)}
+              icon={IconChartBar}
+            />
+            <Stat
+              label="Average"
+              value={money(compensation.data.overall.averageUsd)}
+              icon={IconMathAvg}
+            />
+            <Stat
+              label="Lowest"
+              value={money(compensation.data.overall.minUsd)}
+              icon={IconArrowDownRight}
+            />
+            <Stat
+              label="Highest"
+              value={money(compensation.data.overall.maxUsd)}
+              icon={IconArrowUpRight}
+            />
           </SimpleGrid>
           {compensation.data.excludedWithoutSalary > 0 && (
             <Text size="sm" c="dimmed">
@@ -116,7 +144,7 @@ export function AnalyticsPage(): React.JSX.Element {
             </Text>
           )}
 
-          <Card withBorder radius="md" padding="lg">
+          <Card>
             <Title order={4} mb="md">
               Median pay by {groupBy}
             </Title>
@@ -156,7 +184,7 @@ export function AnalyticsPage(): React.JSX.Element {
         </>
       ) : null}
 
-      <Card withBorder radius="md" padding="lg">
+      <Card>
         <Title order={4}>Pay bands</Title>
         {bands.error !== null && (
           <Alert color="red" role="alert" variant="light" mt="sm">
@@ -217,13 +245,26 @@ export function AnalyticsPage(): React.JSX.Element {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }): React.JSX.Element {
+function Stat({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: typeof IconUsers;
+}): React.JSX.Element {
   return (
-    <Card withBorder radius="md" padding="md">
-      <Text size="sm" c="dimmed">
-        {label}
-      </Text>
-      <Text size="xl" fw={600}>
+    <Card padding="md" role="group" aria-label={label}>
+      <Group justify="space-between" wrap="nowrap" align="flex-start">
+        <Text size="xs" c="dimmed" tt="uppercase" fw={600} style={{ letterSpacing: "0.04em" }}>
+          {label}
+        </Text>
+        <ThemeIcon variant="light" radius="md" size="md" aria-hidden="true">
+          <Icon size={16} stroke={1.7} />
+        </ThemeIcon>
+      </Group>
+      <Text fz={22} fw={700} mt={4}>
         {value}
       </Text>
     </Card>

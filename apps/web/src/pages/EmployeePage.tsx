@@ -138,7 +138,7 @@ export function EmployeePage(): React.JSX.Element {
         )}
       </Group>
 
-      <Card withBorder radius="md" padding="lg">
+      <Card>
         <Title order={4} mb="md">
           Profile
         </Title>
@@ -176,7 +176,7 @@ export function EmployeePage(): React.JSX.Element {
         )}
       </Card>
 
-      <Card withBorder radius="md" padding="lg">
+      <Card>
         <Title order={4}>Current salary</Title>
         <Text size="xl" fw={600} mt="xs">
           {current.currentSalary
@@ -196,7 +196,7 @@ export function EmployeePage(): React.JSX.Element {
         )}
       </Card>
 
-      <Card withBorder radius="md" padding="lg">
+      <Card>
         <Title order={4} mb="md">
           Record a salary change
         </Title>

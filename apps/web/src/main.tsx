@@ -1,3 +1,4 @@
+import "@fontsource-variable/inter";
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import { StrictMode } from "react";
@@ -5,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { App } from "./App.js";
 import { AuthProvider } from "./auth/AuthContext.js";
+import { cssVariablesResolver, theme } from "./theme.js";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
@@ -13,7 +15,12 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <MantineProvider>
+    {/* "auto" follows the system setting until the user picks light or dark; the choice is remembered. */}
+    <MantineProvider
+      theme={theme}
+      cssVariablesResolver={cssVariablesResolver}
+      defaultColorScheme="auto"
+    >
       <BrowserRouter>
         <AuthProvider>
           <App />

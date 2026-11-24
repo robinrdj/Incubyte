@@ -28,16 +28,17 @@ export function MedianBars({ bars }: { bars: MedianBar[] }): React.JSX.Element {
               style={{
                 flex: 1,
                 minWidth: 0,
-                background: "var(--mantine-color-gray-1)",
+                background: "var(--mantine-color-default-hover)",
                 borderRadius: 4,
               }}
             >
               <Box
                 style={{
                   width: `${String((value / largest) * 100)}%`,
-                  height: 14,
+                  height: 12,
                   borderRadius: 4,
-                  background: "var(--mantine-color-blue-6)",
+                  background:
+                    "linear-gradient(90deg, var(--mantine-color-indigo-filled), var(--mantine-color-violet-filled))",
                 }}
               />
             </Box>

@@ -47,7 +47,7 @@ export function NewEmployeePage(): React.JSX.Element {
   return (
     <Stack>
       <Title order={2}>Add employee</Title>
-      <Card withBorder radius="md" padding="lg">
+      <Card>
         {reference.error !== null && (
           <Alert color="red" role="alert" variant="light" mb="md">
             The form options could not be loaded. Try again.
