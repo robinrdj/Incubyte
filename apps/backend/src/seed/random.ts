@@ -1,7 +1,4 @@
-/**
- * Seeded pseudo-random generator (mulberry32). The same seed always produces the same sequence,
- * which is what makes the seed dataset reproducible across machines and runs.
- */
+/** Seeded PRNG (mulberry32), so the dataset is reproducible. */
 export class SeededRandom {
   private state: number;
 
@@ -23,7 +20,7 @@ export class SeededRandom {
     return Math.floor(this.next() * (max - min + 1)) + min;
   }
 
-  /** A uniformly chosen element. Throws on an empty list, which is always a programming error here. */
+  /** Throws on an empty list. */
   pick<T>(items: readonly T[]): T {
     const item = items[this.int(0, items.length - 1)];
     if (item === undefined) {

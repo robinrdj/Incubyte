@@ -12,15 +12,11 @@ function isOrigin(value: string): boolean {
 
 const configSchema = z.object({
   DATABASE_URL: z.string().min(1, "is required"),
-  /** The first HR account, created at startup when there are no HR users yet. */
+  /** Used to create the first HR account when there are none. */
   HR_EMAIL: z.string().trim().toLowerCase().pipe(z.email("must be an email address")),
   HR_PASSWORD: z.string().min(12, "must be at least 12 characters"),
   PORT: z.coerce.number().int().positive().default(4000),
-  /**
-   * Web app addresses allowed to call the API from a browser, comma-separated, for example
-   * "https://salary.vercel.app". Empty when the web app is served from the same address, as in
-   * development through the Vite proxy.
-   */
+  /** Browser origins allowed to call the API, comma-separated. Empty in development. */
   CORS_ORIGIN: z
     .string()
     .default("")
@@ -41,7 +37,7 @@ const configSchema = z.object({
 
 export type AppConfig = z.infer<typeof configSchema>;
 
-/** Reads and validates configuration from environment variables. Fails fast with a clear message. */
+/** Fails fast with a clear message when a variable is missing or invalid. */
 export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
   const result = configSchema.safeParse(env);
   if (!result.success) {

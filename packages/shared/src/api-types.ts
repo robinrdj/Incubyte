@@ -1,8 +1,4 @@
-/**
- * The HTTP contract between the API and the web app. Both sides import these types, so a change
- * to a response shape is a compile error in the web app rather than a runtime surprise.
- * Amounts are decimal strings with two places, never numbers, so money is not rounded by JavaScript.
- */
+/** API contract shared by both apps. Amounts are decimal strings, never numbers. */
 
 export type EmploymentStatus = "ACTIVE" | "LEAVING";
 

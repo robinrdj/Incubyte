@@ -7,11 +7,7 @@ export function mean(values: readonly number[]): number | null {
   return total / values.length;
 }
 
-/**
- * Percentile with linear interpolation between the two nearest ranks.
- * This matches PostgreSQL's percentile_cont, so in-memory results agree with SQL analytics.
- * `fraction` is in [0, 1]. Returns null for an empty input. Does not mutate the input.
- */
+/** Linear interpolation, matching PostgreSQL's percentile_cont. Null for an empty input. */
 export function percentile(values: readonly number[], fraction: number): number | null {
   if (!Number.isFinite(fraction) || fraction < 0 || fraction > 1) {
     throw new RangeError(`percentile fraction must be between 0 and 1, got ${String(fraction)}`);

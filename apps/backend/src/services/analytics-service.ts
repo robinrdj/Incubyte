@@ -51,7 +51,7 @@ interface CurrentSalaryRow {
   readonly departmentName: string;
   readonly levelId: number;
   readonly levelCode: string;
-  /** DECIMAL(14,2) as text, so no precision is lost on the way; null when there is no salary yet. */
+  /** Text keeps full precision; null when there is no salary yet. */
   readonly amount: string | null;
   readonly currency: string | null;
 }
@@ -64,7 +64,6 @@ function amountToMinor(amount: string): MinorUnits {
   return parsed.value;
 }
 
-/** One active employee's current salary, converted to USD, with the labels needed for grouping. */
 interface SalaryPoint {
   readonly employeeId: string;
   readonly employeeCode: string;
@@ -201,10 +200,7 @@ export class AnalyticsService {
     };
   }
 
-  /**
-   * Current salary of each active employee on the given date, converted to USD.
-   * Throws 422 listing every currency that lacks a rate, rather than dropping those employees.
-   */
+  /** Throws 422 naming every currency without a rate, rather than dropping people. */
   private async currentSalaries(
     asOf: string,
     employeeIds?: readonly string[],
@@ -213,9 +209,8 @@ export class AnalyticsService {
       employeeIds === undefined
         ? Prisma.empty
         : Prisma.sql`AND e."id" = ANY(${[...employeeIds]}::uuid[])`;
-    // One query that picks each employee's current salary in the database (DISTINCT ON the latest
-    // record on or before the date) and returns only the columns the analytics use. Loading full
-    // ORM objects for 10,000 employees is too slow on a small host.
+    // DISTINCT ON picks each employee's latest salary on or before the date, in one query;
+    // full ORM objects for 10,000 people are too slow on a small host.
     const [rows, rates] = await Promise.all([
       this.db.$queryRaw<CurrentSalaryRow[]>`
         SELECT DISTINCT ON (e."id")

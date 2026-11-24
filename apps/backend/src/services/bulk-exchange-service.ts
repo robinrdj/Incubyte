@@ -55,11 +55,7 @@ export class BulkExchangeService {
     private readonly clock: () => Date,
   ) {}
 
-  /**
-   * Imports employees from CSV text. Each row is validated, planned against the current data,
-   * and then either reported (dry run) or applied. Valid rows are applied together in one
-   * transaction, and rejected rows are reported with their line numbers.
-   */
+  /** Validates and plans every row, then reports (dry run) or applies valid rows together. */
   async importEmployees(
     csvText: string,
     options: { dryRun: boolean },
@@ -116,7 +112,7 @@ export class BulkExchangeService {
     };
   }
 
-  /** Exports employees matching the filters, in the same columns the import accepts. */
+  /** Same columns the import accepts. */
   async exportEmployeesCsv(filters: EmployeeFilters): Promise<string> {
     const rows = await this.db.employee.findMany({
       where: employeeWhere(filters),

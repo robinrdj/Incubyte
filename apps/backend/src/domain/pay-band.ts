@@ -8,11 +8,7 @@ export interface PayBand {
 
 export type BandPosition = "BELOW" | "WITHIN" | "ABOVE";
 
-/**
- * A band must have a positive minimum and a maximum at or above it.
- * A zero-valued band is rejected: it cannot be used for a compa-ratio (the midpoint would be zero)
- * and it almost always means missing data.
- */
+/** Positive minimum, maximum at or above it; a zero band would break the compa-ratio. */
 export function assertValidBand(band: PayBand): void {
   if (!Number.isSafeInteger(band.minMinor) || !Number.isSafeInteger(band.maxMinor)) {
     throw new InvalidPayBandError("bounds must be whole minor units");
@@ -37,10 +33,7 @@ export function bandPosition(amount: MinorUnits, band: PayBand): BandPosition {
   return "WITHIN";
 }
 
-/**
- * Compa-ratio: amount divided by the band midpoint.
- * 1.0 is exactly the midpoint, below 1.0 is under-paid relative to the band, above 1.0 is over.
- */
+/** Amount divided by the band midpoint; 1.0 is the midpoint. */
 export function compaRatio(amount: MinorUnits, band: PayBand): number {
   assertValidBand(band);
   const midpoint = (band.minMinor + band.maxMinor) / 2;

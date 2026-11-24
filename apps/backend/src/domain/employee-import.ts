@@ -7,31 +7,30 @@ export const MAX_IMPORT_ROWS = 10_000;
 
 export type EmploymentStatus = "ACTIVE" | "LEAVING";
 
-/** One validated employee row from a CSV import, with salary and reference codes resolved to values. */
 export interface EmployeeImportRow {
   readonly employeeCode: string;
   readonly firstName: string;
   readonly lastName: string;
-  /** Lower case. Together with the employee code, this identifies the employee. */
+  /** Lower case. */
   readonly email: string;
   readonly jobTitle: string;
   readonly countryCode: string;
   readonly departmentName: string;
   readonly levelCode: string;
   readonly startDate: string;
-  /** Absent when the status column is blank, which leaves the employee's status unchanged. */
+  /** Absent when blank, which keeps the current status. */
   readonly status?: EmploymentStatus;
   readonly salaryAmount: MinorUnits;
   readonly salaryCurrency: string;
   readonly salaryEffectiveFrom: string;
 }
 
-/** Reference data the import is checked against. Unknown codes are errors, not silently created. */
+/** Unknown codes are errors, not created. */
 export interface ImportReferenceData {
   readonly countryCodes: ReadonlySet<string>;
   readonly departmentNames: ReadonlySet<string>;
   readonly levelCodes: ReadonlySet<string>;
-  /** Today's date as YYYY-MM-DD. Injected so validation is deterministic. */
+  /** Injected, so validation is deterministic. */
   readonly today: string;
 }
 
@@ -56,10 +55,7 @@ export function isIsoDate(value: string): boolean {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
-/**
- * Validates one CSV row. Collects every problem in the row so the user can fix them together.
- * Returns the typed row on success, or the list of error messages on failure.
- */
+/** Collects every problem in the row, so they can be fixed together. */
 export function validateEmployeeRow(
   raw: RawEmployeeRow,
   reference: ImportReferenceData,
@@ -170,16 +166,12 @@ export function validateEmployeeRow(
 }
 
 export interface MappedCsvRow {
-  /** Record number in the file. The header is record 1, so the first data row is record 2. */
+  /** The header is record 1, so data starts at record 2. */
   readonly line: number;
   readonly raw: RawEmployeeRow;
 }
 
-/**
- * Maps a parsed CSV table onto import columns. Header names match case-insensitively.
- * Missing required columns and unknown columns are both errors, so a typo such as
- * "salary_amount" fails loudly instead of being ignored.
- */
+/** Header names match case-insensitively; unknown or missing columns fail the file. */
 export function mapCsvToRows(
   table: readonly (readonly string[])[],
 ): Result<MappedCsvRow[], string[]> {
@@ -230,10 +222,7 @@ export function mapCsvToRows(
   );
 }
 
-/**
- * Returns the emails that appear more than once in the batch, compared case-insensitively.
- * The result is sorted and each email is listed once, in lowercase.
- */
+/** Emails used more than once, in lower case and sorted. */
 export function findDuplicateEmails(emails: readonly string[]): string[] {
   const seen = new Set<string>();
   const duplicates = new Set<string>();

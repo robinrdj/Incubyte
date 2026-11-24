@@ -9,7 +9,6 @@ export function bearerToken(header: string | undefined): string | null {
   return match?.[1] ?? null;
 }
 
-/** Rejects requests without a valid session and makes the signed-in user available to routes. */
 export function requireSession(auth: AuthService): RequestHandler {
   return async (req, res, next) => {
     const token = bearerToken(req.headers.authorization);

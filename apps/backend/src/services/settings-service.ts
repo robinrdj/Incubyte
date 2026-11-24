@@ -17,10 +17,7 @@ function toMinor(amount: string): number {
   return parsed.value;
 }
 
-/**
- * Maintenance of the two tables HR edits by hand: dated FX rates and pay bands.
- * The seed loads sensible defaults for both, and this service lets HR change them.
- */
+/** The tables HR edits by hand: dated FX rates and pay bands. */
 export class SettingsService {
   constructor(private readonly db: PrismaClient) {}
 
@@ -39,11 +36,7 @@ export class SettingsService {
     };
   }
 
-  /**
-   * Stores the rate for a currency on a date. A new date adds a rate; the analytics use the latest
-   * rate on or before the date they report on, so earlier figures keep their earlier rate. Saving a
-   * date that already has a rate replaces it, which is how a typing mistake is corrected.
-   */
+  /** A new date adds a rate; the same date corrects it. Earlier figures keep their rate. */
   async saveFxRate(input: SaveFxRateInput): Promise<FxRateDto> {
     if (input.currency === REPORTING_CURRENCY) {
       throw unprocessable(`${REPORTING_CURRENCY} is the reporting currency and always has rate 1.`);
@@ -87,10 +80,7 @@ export class SettingsService {
     }));
   }
 
-  /**
-   * Sets the band for a level in a country, creating it if the pair has none yet. Bands are in the
-   * country's currency, so they need no FX rate until they are compared in USD.
-   */
+  /** Creates the band if missing. In local currency, so no FX rate is needed. */
   async savePayBand(
     countryCode: string,
     levelCode: string,

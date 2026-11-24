@@ -1,10 +1,6 @@
 import { fail, ok, type Result } from "./result.js";
 
-/**
- * Parses RFC 4180-style CSV: quoted fields, doubled quotes inside quoted fields, embedded commas
- * and newlines, and CRLF or LF line endings. A leading byte-order mark is ignored.
- * Blank trailing lines are dropped.
- */
+/** RFC 4180 CSV: quoted fields, embedded commas and newlines, CRLF or LF, optional BOM. */
 export function parseCsv(text: string): Result<string[][]> {
   const input = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
   const records: string[][] = [];
@@ -71,11 +67,7 @@ export function parseCsv(text: string): Result<string[][]> {
 /** Characters that make spreadsheet software treat a cell as a formula. */
 const FORMULA_PREFIX = /^[=+\-@\t\r]/;
 
-/**
- * Formats rows as CSV with CRLF line endings, which spreadsheet software expects.
- * Text cells that start with a formula character are prefixed with an apostrophe, so an exported
- * name such as "=HYPERLINK(...)" cannot run when the file is opened in a spreadsheet.
- */
+/** CRLF lines; cells starting with a formula character get an apostrophe. */
 export function formatCsv(header: readonly string[], rows: readonly (readonly string[])[]): string {
   const lines = [header, ...rows].map((cells) => cells.map(escapeCell).join(","));
   return `${lines.join("\r\n")}\r\n`;

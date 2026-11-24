@@ -2,14 +2,13 @@ import type { MinorUnits } from "./money.js";
 import type { EmployeeImportRow, EmploymentStatus } from "./employee-import.js";
 import { findDuplicateEmails } from "./employee-import.js";
 
-/** A salary record as it already exists in the database. */
 export interface ExistingSalary {
   readonly effectiveFrom: string;
   readonly amountMinor: MinorUnits;
   readonly currency: string;
 }
 
-/** An employee as it already exists in the database, used to decide what an import row changes. */
+/** The snapshot an import row is compared against. */
 export interface ExistingEmployee {
   readonly id: string;
   readonly employeeCode: string;
@@ -60,15 +59,9 @@ export interface ExistingIndex {
 }
 
 /**
- * Decides what each valid import row will do. Pure: it reads only the snapshot it is given.
- *
- * Rules:
- * - Matching is by email. The employee code must agree with the email's existing record.
- * - A row with no existing match creates an employee, unless its code is already in use.
- * - Duplicate emails or codes within the file reject every row involved, because the file is ambiguous.
- * - Salary history is append-only. A row dated after the current salary appends a record. A row that
- *   matches an existing record exactly is a no-op, which makes re-running an import safe. A row that
- *   conflicts with an existing record, or is dated before the current salary, is rejected.
+ * Decides what each valid row does. Rows match by email, and the code must agree.
+ * Duplicates within the file reject every row involved. A later salary appends, an identical one
+ * is a no-op (so re-running is safe), and anything else is rejected.
  */
 export function planEmployeeImport(
   rows: readonly { readonly line: number; readonly row: EmployeeImportRow }[],

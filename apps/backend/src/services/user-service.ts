@@ -41,10 +41,7 @@ export class UserService {
     }
   }
 
-  /**
-   * Creates the first account from configuration when there are no HR users yet, so a new
-   * deployment can be signed into. Does nothing once any account exists.
-   */
+  /** Creates the first account from configuration; does nothing once any exists. */
   async ensureInitialUser(email: string, password: string): Promise<void> {
     if ((await this.db.hrUser.count()) > 0) return;
     await this.db.hrUser.create({

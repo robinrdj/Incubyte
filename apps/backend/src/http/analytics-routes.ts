@@ -9,7 +9,7 @@ function sendCsv(res: Response, filename: string, csv: string): void {
   res.send(csv);
 }
 
-/** Read-only compensation analytics. Every figure is in USD and uses the active headcount. */
+/** All figures in USD, active employees only. */
 export function createAnalyticsRouter(service: AnalyticsService): Router {
   const router = Router();
 
@@ -29,7 +29,7 @@ export function createAnalyticsRouter(service: AnalyticsService): Router {
     res.json(await service.bandViolations(query));
   });
 
-  /** Every matching row, not one page: the export is for working with the full list elsewhere. */
+  /** The full list, not one page. */
   router.get("/analytics/band-violations.csv", async (req, res) => {
     const { asOf, position } = bandViolationsQuerySchema.parse(req.query);
     const report = await service.bandViolations({

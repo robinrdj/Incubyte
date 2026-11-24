@@ -1,16 +1,12 @@
 import { InvalidFxRateError, MissingFxRateError } from "./errors.js";
 import type { MinorUnits } from "./money.js";
 
-/** Maps a currency code to its rate in the reporting currency: 1 unit of currency = rate reporting units. */
+/** 1 unit of the currency = rate units of the reporting currency. */
 export type FxRates = ReadonlyMap<string, number>;
 
 export const REPORTING_CURRENCY = "USD";
 
-/**
- * Converts an amount into the reporting currency (USD by default).
- * Throws MissingFxRateError when no rate is configured for the currency, so a gap in the rate table
- * never produces a silently wrong total.
- */
+/** Throws on a missing rate rather than producing a wrong total. */
 export function toReportingCurrency(
   amount: MinorUnits,
   currency: string,

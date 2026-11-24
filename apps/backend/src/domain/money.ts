@@ -1,18 +1,11 @@
 import { fail, ok, type Result } from "./result.js";
 
-/**
- * Money is handled as integer minor units (cents) inside the domain.
- * This avoids floating-point drift when summing or converting salaries.
- * Database values are DECIMAL(14,2) and convert to and from minor units at the edges.
- */
+/** Money is integer cents inside the domain, which avoids floating-point drift. */
 export type MinorUnits = number;
 
 const AMOUNT_PATTERN = /^\d+(\.\d{1,2})?$/;
 
-/**
- * Parses a decimal string such as "123456.78" into minor units.
- * Rejects negative numbers, more than two decimal places, zero, and values too large to be exact.
- */
+/** Rejects negatives, zero, more than two decimals, and unsafe sizes. */
 export function parseMoney(input: string): Result<MinorUnits> {
   const trimmed = input.trim();
   if (!AMOUNT_PATTERN.test(trimmed)) {

@@ -34,7 +34,7 @@ async function main(): Promise<void> {
   }
 }
 
-/** The host and database name, without the password, so the log shows where the data is going. */
+/** Host and database, never the password. */
 function describeTarget(url: string): string {
   try {
     const parsed = new URL(url);

@@ -32,7 +32,7 @@ const toDateOnly = (value: Date): string => value.toISOString().slice(0, 10);
 
 const fromDateOnly = (value: string): Date => new Date(`${value}T00:00:00.000Z`);
 
-/** Converts a validated amount string to minor units. Callers have already validated it. */
+/** Input is already validated. */
 function amountToMinor(amount: string): number {
   const parsed = parseMoney(amount);
   if (!parsed.ok) {
@@ -104,8 +104,7 @@ export class EmployeeService {
     const where = employeeWhere(query);
     const withoutStatus = employeeWhere({ ...query, status: undefined });
 
-    // Reads run outside a transaction. Prisma's adapter fires relation loads concurrently inside a
-    // transaction, which triggers a pg driver deprecation warning.
+    // Outside a transaction: concurrent relation loads inside one trigger a pg warning.
     const [total, byStatus] = await Promise.all([
       this.db.employee.count({ where }),
       this.db.employee.groupBy({ by: ["status"], where: withoutStatus, _count: { _all: true } }),
@@ -253,12 +252,7 @@ export class EmployeeService {
     });
   }
 
-  /**
-   * Records a salary. A later date adds a record, so the history grows. The current record's own
-   * date corrects that record instead, for example when a salary was entered wrongly; the audit
-   * trail keeps both values. Earlier dates are refused: the past is only changed through its
-   * latest record.
-   */
+  /** A later date appends; the current date corrects it (audited); earlier dates are refused. */
   async addSalaryChange(id: string, input: SalaryInput, actor: string): Promise<SalaryDto> {
     return this.db.$transaction(async (tx) => {
       const employee = await this.load(tx, id);
@@ -335,7 +329,6 @@ export class EmployeeService {
     }));
   }
 
-  /** Countries, departments, and levels for pickers. Read-only. */
   async reference(): Promise<ReferenceDataDto> {
     const [countries, departments, levels] = await Promise.all([
       this.db.country.findMany({ orderBy: { name: "asc" } }),
@@ -356,10 +349,7 @@ export class EmployeeService {
     }
   }
 
-  /**
-   * Loads an employee inside a transaction. Queries run one at a time: an `include` inside a
-   * transaction makes Prisma's adapter issue concurrent queries, which pg flags as deprecated.
-   */
+  /** One query at a time: an include inside a transaction triggers a pg deprecation warning. */
   private async load(tx: Tx, id: string): Promise<EmployeeRow> {
     const employee = await tx.employee.findUnique({ where: { id } });
     if (!employee) {

@@ -1,14 +1,7 @@
 import { SeededRandom } from "./random.js";
 import { namePoolFor, type NamePool } from "./names.js";
 
-/**
- * Deterministic seed data for the salary tool. Pure: no database, no clock, no environment.
- * The same seed and size always produce the same dataset.
- *
- * Sample figures are illustrative, not market data. They exist so the analytics have realistic
- * shape to report on: pay rises with level, varies by country cost factor, and a share of people
- * sit outside their band.
- */
+/** Deterministic: no database, clock, or environment. Figures are illustrative. */
 
 export const DEFAULT_SEED = 20261123;
 export const DEFAULT_EMPLOYEE_COUNT = 10_000;
@@ -40,7 +33,7 @@ const COUNTRIES: readonly CountrySpec[] = [
   { code: "BR", name: "Brazil", currency: "BRL", costFactor: 0.35, weight: 8 },
 ];
 
-/** Sample rates: 1 unit of currency in USD, on two dates so the "latest rate on or before" rule is exercised. */
+/** Two dates, so the "latest rate on or before" rule is exercised. */
 const FX_RATES: readonly { date: string; rates: Record<string, string> }[] = [
   {
     date: "2025-01-01",
@@ -86,10 +79,7 @@ const LEVELS: readonly { code: string; title: string; baseUsd: number; weight: n
   { code: "L6", title: "Director", baseUsd: 170_000, weight: 7 },
 ];
 
-/**
- * How many times to redraw a name that is already taken before accepting a repeat. Real companies
- * do have the odd two people with the same name, so a repeat is allowed once the pool runs dry.
- */
+/** Redraws before accepting a repeated name (real companies have a few). */
 const NAME_ATTEMPTS = 25;
 
 export interface CountryRow {
@@ -175,10 +165,7 @@ function toLocal(usd: number, usdRate: number): number {
 /** Decimal string for a whole number of major units, e.g. 90000 becomes "90000.00". */
 const money = (units: number): string => `${String(units)}.00`;
 
-/**
- * The sample rate in force on a date: the latest rate dated on or before it. Dates before the first
- * sample rate use that first rate, so historic start dates still get a salary in USD terms.
- */
+/** Latest sample rate on or before the date; earlier dates use the first. */
 function fxRateFor(currency: string, date: string): number {
   if (currency === "USD") {
     return 1;
@@ -192,7 +179,6 @@ function fxRateFor(currency: string, date: string): number {
   return Number(rate);
 }
 
-/** Generates a complete, reproducible dataset. */
 export function generateDataset(options: DatasetOptions = {}): SeedDataset {
   const seed = options.seed ?? DEFAULT_SEED;
   const employeeCount = options.employeeCount ?? DEFAULT_EMPLOYEE_COUNT;

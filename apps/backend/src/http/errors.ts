@@ -27,10 +27,7 @@ interface ErrorBody {
   error: { code: string; message: string; details?: unknown };
 }
 
-/**
- * Maps every failure to a consistent JSON body: { error: { code, message, details? } }.
- * Internal details are never sent to the client.
- */
+/** Every failure becomes { error: { code, message, details? } }; internals are never sent. */
 export const errorHandler: ErrorRequestHandler = (err: unknown, _req, res, _next) => {
   const send = (status: number, body: ErrorBody): void => {
     res.status(status).json(body);

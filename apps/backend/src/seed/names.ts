@@ -1,14 +1,10 @@
-/**
- * Name pools for the seed data, by region. Each country draws from the pool that fits it, so a
- * German office mostly has German names and an Indian office Indian names. The pools are large
- * enough that, with the generator's retry on repeats, full names are almost always unique.
- */
+/** Name pools by region, large enough that full names rarely repeat. */
 export interface NamePool {
   readonly first: readonly string[];
   readonly last: readonly string[];
 }
 
-/** United States, United Kingdom, Canada, Australia. Deliberately mixed, as those workforces are. */
+/** US, UK, Canada, and Australia; deliberately mixed. */
 // prettier-ignore
 const ENGLISH: NamePool = {
   first: [
@@ -164,7 +160,6 @@ const POOLS_BY_COUNTRY: Readonly<Record<string, NamePool>> = {
   BR: BRAZILIAN,
 };
 
-/** The name pool for a country. Throws for a country without one, which is a programming error. */
 export function namePoolFor(countryCode: string): NamePool {
   const pool = POOLS_BY_COUNTRY[countryCode];
   if (pool === undefined) {

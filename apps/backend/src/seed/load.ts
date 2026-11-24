@@ -34,10 +34,7 @@ function batches<T>(items: readonly T[], size: number): T[][] {
   return result;
 }
 
-/**
- * Writes a dataset to the database in batches. Refuses to load into a database that already holds
- * countries unless `reset` is set, because reset deletes every domain table first.
- */
+/** Batched writes. Refuses a non-empty database unless reset, which clears every table. */
 export async function loadDataset(
   db: PrismaClient,
   dataset: SeedDataset,

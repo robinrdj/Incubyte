@@ -9,7 +9,7 @@ const summaryCells = (summary: SummaryDto): string[] => [
   summary.maxUsd ?? "",
 ];
 
-/** The grouped compensation table, with the company-wide row first. Amounts are in USD. */
+/** Company-wide row first; amounts in USD. */
 export function compensationToCsv(report: CompensationReportDto): string {
   const header = [report.groupBy, "headcount", "medianUsd", "averageUsd", "minUsd", "maxUsd"];
   const rows = [

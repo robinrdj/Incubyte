@@ -1,7 +1,7 @@
 import { mean, median } from "./statistics.js";
 import type { MinorUnits } from "./money.js";
 
-/** Summary statistics over a set of amounts in minor units. Null fields mean there were no employees. */
+/** Null fields mean there were no employees. */
 export interface CompensationSummary {
   readonly headcount: number;
   readonly medianMinor: MinorUnits | null;
@@ -10,10 +10,7 @@ export interface CompensationSummary {
   readonly maxMinor: MinorUnits | null;
 }
 
-/**
- * Headcount, median, average, minimum, and maximum of salaries.
- * Median and average are rounded to the nearest minor unit so results are always whole cents.
- */
+/** Median and average are rounded to whole cents. */
 export function summarizeCompensation(amounts: readonly MinorUnits[]): CompensationSummary {
   if (amounts.length === 0) {
     return { headcount: 0, medianMinor: null, averageMinor: null, minMinor: null, maxMinor: null };
@@ -33,10 +30,7 @@ export interface Group<T> {
   readonly items: T[];
 }
 
-/**
- * Groups items by a key, keeping first-seen labels. Groups are returned sorted by label,
- * so report output is stable across runs.
- */
+/** Groups sorted by label, so report output is stable. */
 export function groupItems<T>(
   items: readonly T[],
   classify: (item: T) => { key: string; label: string },

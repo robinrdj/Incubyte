@@ -9,10 +9,7 @@ const importQuerySchema = z
   .object({ dryRun: z.enum(["true", "false"]).default("false") })
   .transform((query) => query.dryRun === "true");
 
-/**
- * CSV import and export. The import takes the raw file as the request body (text/csv, up to 5 MB),
- * so no multipart parser is needed. Pass ?dryRun=true to validate without writing.
- */
+/** The import body is the raw CSV text, so no multipart parser is needed. */
 export function createBulkRouter(service: BulkExchangeService): Router {
   const router = Router();
 

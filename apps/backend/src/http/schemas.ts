@@ -124,7 +124,7 @@ export type BandViolationsQuery = z.infer<typeof bandViolationsQuerySchema>;
 
 export type CompensationQuery = z.infer<typeof compensationQuerySchema>;
 
-/** A positive decimal with up to 10 whole digits and 8 decimal places, matching the rate column. */
+/** Matches the DECIMAL(18,8) rate column. */
 const fxRateValue = z
   .string()
   .trim()
