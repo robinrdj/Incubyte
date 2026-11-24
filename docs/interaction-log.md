@@ -854,3 +854,15 @@ The directory and every employee profile downloaded the whole out-of-band report
 - Band badges now appear after a placeholder, so the test waits for "Above band".
 
 `docs/plan.md` was also out of format after the folder rename. `npm run check` passes.
+
+---
+
+## 2026-11-25 — Submission artifacts
+
+**User request:** Update the README for the renamed folders, summarise the conversation in a one-to-two-page document, and provide PDFs of the summary, design history, and requirements for the submission email.
+
+- **README rewritten** for the current app: live links first, then features, stack, the `apps/backend` and `apps/frontend` layout with `tests/` folders, running locally, tests, the API, the CSV format, and deployment.
+- **New `docs/development-summary.md`:** two pages on the approach, timeline, how AI was used (who decided what, and how the output was checked), and quality practices.
+- **New `docs/architecture.md`:** a system diagram, key decisions with their trade-offs, measured performance, and known gaps. This covers the architecture, trade-off, and performance artifacts the brief lists.
+- **`docs/requirements.md`** keeps its original text, written before building, and gains a dated "Changes during delivery" section: HR accounts and sessions, settings, the same-date salary correction, and where analytics are computed.
+- **PDFs in `docs/pdf/`:** requirements, development summary, architecture, and design history. Each Markdown file is rendered to styled HTML with `marked` and printed with headless Chrome (Python was not available). Each PDF was checked by reading it back: the summary is 2 pages, and the diagram and tables render cleanly.
