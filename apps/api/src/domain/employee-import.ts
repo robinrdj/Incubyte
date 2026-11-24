@@ -1,3 +1,4 @@
+import { EMPLOYEE_CSV_COLUMNS } from "@salary/shared";
 import { parseMoney, type MinorUnits } from "./money.js";
 import { fail, ok, type Result } from "./result.js";
 
@@ -37,21 +38,7 @@ export interface ImportReferenceData {
 export type RawEmployeeRow = Readonly<Record<string, string | undefined>>;
 
 /** Column names the import understands, in the order the export writes them. */
-export const IMPORT_COLUMNS = [
-  "employeeCode",
-  "firstName",
-  "lastName",
-  "email",
-  "jobTitle",
-  "countryCode",
-  "departmentName",
-  "levelCode",
-  "startDate",
-  "status",
-  "salaryAmount",
-  "salaryCurrency",
-  "salaryEffectiveFrom",
-] as const;
+export const IMPORT_COLUMNS = EMPLOYEE_CSV_COLUMNS;
 
 const REQUIRED_COLUMNS: readonly string[] = IMPORT_COLUMNS.filter((c) => c !== "status");
 
