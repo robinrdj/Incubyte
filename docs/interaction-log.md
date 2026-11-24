@@ -762,3 +762,33 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 - On the local 10,000-employee data, the old and new builds give identical compensation output for every grouping, and the same out-of-band people and figures.
 - Locally, a grouping takes 0.09–0.26 s instead of 0.26–0.50 s, and the band report 0.17 s instead of 0.27 s.
 - The time on Render is measured after this is deployed.
+
+---
+
+## 2026-11-24 — Stage 10, step 3: Live site load times
+
+**User request:** "Right now the data is taking too much time to load. Can you address this?"
+
+**Measured on the live API** (Render free plan, 0.1 CPU):
+
+- Reference data, an employee page, and settings: 0.6–0.9 s each.
+- One analytics grouping: 6.0 s.
+- The out-of-band report: **9.1 s and 879 KB**.
+
+The directory and every employee profile downloaded the whole out-of-band report just to show a band badge on 25 rows, or on one person. So the first screen after sign-in waited about 9 seconds.
+
+**Changes:**
+
+- **The band report can be narrowed and paged on the server.** `GET /api/analytics/band-violations` takes optional `employeeIds` (up to 100, applied inside the SQL query), `position` (BELOW or ABOVE), and `page` and `pageSize` (up to 100). The response adds `below`, `above`, `total`, `page`, and `pageSize`. Rows are sorted on the server, furthest from the band midpoint first, then by code. That keeps the existing fixture order. With no parameters the endpoint returns every row as before.
+- **The directory** asks only about the employees on the current page, and **the profile** only about its own employee.
+- **The analytics out-of-band card** fetches one page of 25 rows with the filter in the request, shows the server's Below and Above counts, and dims while a page loads.
+- **The single-query salary loader** from step 2 (`c35a7ab`) goes out with this change. It speeds up both analytics and the band report.
+
+**Verification:**
+
+- 104 integration tests (6 new) cover a report limited to given employees, the position filter with both counts, paging with the furthest-from-band order, and rejected bad input.
+- 102 web tests (3 new or rewritten) cover the directory asking only about its own rows, the analytics card asking for page 2, and the Below filter starting from page 1.
+- While editing, a test-file replacement removed the analytics row-click test. ESLint caught its now-unused helpers, and the test was restored.
+- `npm run check` passes. Live timings are measured after the deploy.
+
+**Note:** the local dev servers were stopped by Claude Code because the machine ran low on memory. They are not restarted.
