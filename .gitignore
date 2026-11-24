@@ -25,7 +25,7 @@ npm-debug.log*
 *.log
 
 # Generated Prisma client (created by `prisma generate`)
-apps/api/src/generated/
+apps/backend/src/generated/
 
 # AI agent skill files installed by tooling (prisma generate)
 .agents/

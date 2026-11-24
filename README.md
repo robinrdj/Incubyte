@@ -36,11 +36,11 @@ docker-compose.yml   Local PostgreSQL (development and test)
 
 The app follows the system light or dark setting, and the toggle in the header switches it. The choice is remembered.
 
-**Demo account on the sign-in page.** Set `VITE_DEMO_EMAIL` and `VITE_DEMO_PASSWORD` in `apps/web/.env.local` (see `apps/web/.env.example`) to show a demo account with a "Use demo account" button. They must match the API's `HR_EMAIL` and `HR_PASSWORD`. Leave them empty for any deployment that holds real salaries, because the hint makes the password public.
+**Demo account on the sign-in page.** The sign-in page shows the demo account (`hr.manager@acme.test`) with a one-click sign-in. `VITE_DEMO_EMAIL` and `VITE_DEMO_PASSWORD` change the details shown, and `VITE_HIDE_DEMO_ACCOUNT=true` hides the panel, which a deployment with real salaries should do.
 
-`npm run dev` in `apps/web` starts the Vite dev server on port 5173. It forwards `/api` to the API on port 4000 (override with `VITE_API_TARGET`), so no CORS setup is needed in development.
+`npm run dev` in `apps/frontend` starts the Vite dev server on port 5173. It forwards `/api` to the API on port 4000 (override with `VITE_API_TARGET`), so no CORS setup is needed in development.
 
-Sign in with the HR email and password from `.env` (`HR_EMAIL`, `HR_PASSWORD`). The session lasts for the browser tab only: reloading keeps you signed in, and closing the tab signs you out.
+Sign in with an HR account. When the database has no HR users, the API creates the first one at startup from `HR_EMAIL` and `HR_PASSWORD` in `.env`. Signed-in users add colleagues on the **HR users** page. The session lasts for the browser tab: reloading keeps you signed in, and closing the tab or signing out ends it.
 
 The API client (`src/api/client.ts`) is typed with the shared contract. A change to a response shape is a compile error in the web app.
 
@@ -71,6 +71,16 @@ cp .env.example .env
 npm run check
 ```
 
+## Tests
+
+Tests live next to the code they cover, in a `tests` folder per package:
+
+| Folder                           | What                                                                  |
+| -------------------------------- | --------------------------------------------------------------------- |
+| `apps/backend/tests/unit`        | Domain logic, seed generation, and configuration. No database.        |
+| `apps/backend/tests/integration` | The HTTP API against a real PostgreSQL test database.                 |
+| `apps/frontend/tests`            | Components and pages in jsdom with a fake API. Helpers in `support/`. |
+
 ## Scripts
 
 | Command                | Purpose                               |
@@ -82,7 +92,7 @@ npm run check
 | `npm test`             | Run all test suites                   |
 | `npm run check`        | All of the above, in order            |
 
-### Database commands (run inside `apps/api`)
+### Database commands (run inside `apps/backend`)
 
 | Command                    | Purpose                                              |
 | -------------------------- | ---------------------------------------------------- |
@@ -97,11 +107,16 @@ Integration tests refuse to run against any database whose name does not end in 
 
 ## API
 
-Locally, run `npm run dev` in `apps/api`. It builds the API and starts it on port 4000 with the variables from the root `.env`. In production, `npm start` runs the built API and the host supplies the variables.
-Every `/api` route requires HTTP Basic authentication. `GET /health` is public.
+Locally, run `npm run dev` in `apps/backend`. It builds the API and starts it on port 4000 with the variables from the root `.env`. In production, `npm start` runs the built API and the host supplies the variables.
+`POST /api/session` exchanges an email and password for a session token (12-hour expiry, stored only as a SHA-256 hash). Every other `/api` route needs `Authorization: Bearer <token>`. `GET /health` is public.
 
 | Method | Path                                              | Purpose                                                                                                                                                                                                                              |
 | ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/api/session`                                    | Sign in with `{ email, password }`. Returns `{ token, expiresAt, user }`. Public.                                                                                                                                                    |
+| GET    | `/api/session`                                    | The signed-in HR user.                                                                                                                                                                                                               |
+| DELETE | `/api/session`                                    | Sign out (ends the session).                                                                                                                                                                                                         |
+| GET    | `/api/users`                                      | HR users, oldest first.                                                                                                                                                                                                              |
+| POST   | `/api/users`                                      | Add an HR user with `{ name, email, password }`. Records who added them.                                                                                                                                                             |
 | GET    | `/api/employees`                                  | Paginated list. Filters: `search`, `countryCode`, `departmentName`, `levelCode`, `status`. Also `page` and `pageSize` (max 100).                                                                                                     |
 | POST   | `/api/employees`                                  | Create an employee with an opening salary.                                                                                                                                                                                           |
 | GET    | `/api/employees/:id`                              | Employee with current salary.                                                                                                                                                                                                        |
@@ -127,7 +142,7 @@ Production uses [Neon](https://neon.tech) PostgreSQL. Neon gives two connection 
 | `DATABASE_URL`        | **Pooled** (the host contains `-pooler`)                | The running API         |
 | `DIRECT_DATABASE_URL` | **Direct** (Connect dialog with connection pooling off) | Migrations and the seed |
 
-When `DIRECT_DATABASE_URL` is set, `npm run db:deploy` and `npm run seed` use it. Otherwise they use `DATABASE_URL`, as in local development. A variable set in the shell takes priority over `.env`, so a one-off run against Neon needs no file changes. In PowerShell, from `apps/api`:
+When `DIRECT_DATABASE_URL` is set, `npm run db:deploy` and `npm run seed` use it. Otherwise they use `DATABASE_URL`, as in local development. A variable set in the shell takes priority over `.env`, so a one-off run against Neon needs no file changes. In PowerShell, from `apps/backend`:
 
 ```powershell
 $env:DIRECT_DATABASE_URL = "<direct connection string>"
@@ -142,7 +157,7 @@ Both commands print the host and database they target, never the password. Keep 
 
 ### Seed data
 
-`npm run seed` (in `apps/api`) loads 10,000 reproducible employees across 10 countries, with reference data, default FX rates (two dates per currency), and a pay band for every level in every country. Names come from a pool for each region, so a German office has German names, and no two employees share a full name. HR changes these on the **Settings** page. The same seed always produces the same data.
+`npm run seed` (in `apps/backend`) loads 10,000 reproducible employees across 10 countries, with reference data, default FX rates (two dates per currency), and a pay band for every level in every country. Names come from a pool for each region, so a German office has German names, and no two employees share a full name. HR changes these on the **Settings** page. The same seed always produces the same data.
 
 | Command                    | Purpose                                                             |
 | -------------------------- | ------------------------------------------------------------------- |
@@ -167,14 +182,14 @@ Columns (header names are case-insensitive; unknown or missing required columns 
 Errors use one shape: `{ "error": { "code", "message", "details?" } }`.
 Status codes: 400 invalid input, 401 unauthenticated, 404 not found, 409 duplicate email or code, 422 business-rule violation.
 
-Environment variables (in `.env`): `DATABASE_URL`, `HR_EMAIL` (the sign-in email), `HR_PASSWORD` (at least 12 characters), and optionally `PORT` (default 4000).
+Environment variables (in `.env`): `DATABASE_URL`; `HR_EMAIL` and `HR_PASSWORD` (at least 12 characters) for the first HR account; and optionally `PORT` (default 4000) and `CORS_ORIGIN`.
 
 ## Deployment
 
 The web app and the API are hosted separately: the API on [Render](https://render.com), the web app on [Vercel](https://vercel.com), and PostgreSQL on [Neon](https://neon.tech). All three have free plans.
 
 ```
-Browser ──> Vercel (static React app) ──HTTPS + Basic auth──> Render (Node API) ──> Neon (PostgreSQL)
+Browser ──> Vercel (static React app) ──HTTPS + session token──> Render (Node API) ──> Neon (PostgreSQL)
                                                                ohio                  us-east-2 (Ohio)
 ```
 
@@ -191,27 +206,26 @@ Create the tables and load the seed from your machine, as described in [Hosted d
 | --------------------- | ----------------------------------------------------------- |
 | `DATABASE_URL`        | Neon **pooled** connection string                           |
 | `DIRECT_DATABASE_URL` | Neon **direct** connection string (used by migrations)      |
-| `HR_EMAIL`            | The HR sign-in email                                        |
-| `HR_PASSWORD`         | At least 12 characters                                      |
+| `HR_EMAIL`            | Email of the first HR account (created when there are none) |
+| `HR_PASSWORD`         | Its password, at least 12 characters                        |
 | `CORS_ORIGIN`         | The Vercel address from step 3, e.g. `https://….vercel.app` |
 
 The build installs, compiles, and applies pending migrations (`prisma migrate deploy`). Migrations run during the build because Render's pre-deploy step needs a paid plan.
 
 ### 3. Web app (Vercel)
 
-1. In Vercel, import this repository and set **Root Directory** to `apps/web`. `apps/web/vercel.json` sets the install and build commands, which run from the repository root because the app uses the shared workspace package. It also sends every path to `index.html`, so reloading a page such as `/employees/…` works.
+1. In Vercel, import this repository and set **Root Directory** to `apps/frontend`. `apps/frontend/vercel.json` sets the install and build commands, which run from the repository root because the app uses the shared workspace package. It also sends every path to `index.html`, so reloading a page such as `/employees/…` works.
 2. Set the environment variables, then deploy:
 
-| Variable             | Value                                                                      |
-| -------------------- | -------------------------------------------------------------------------- |
-| `VITE_API_BASE_URL`  | The Render address, e.g. `https://salary-management-api.onrender.com`      |
-| `VITE_DEMO_EMAIL`    | Optional: shows a demo account on the sign-in page (must match `HR_EMAIL`) |
-| `VITE_DEMO_PASSWORD` | Optional: must match `HR_PASSWORD`. Leave empty for real data              |
+| Variable                 | Value                                                                 |
+| ------------------------ | --------------------------------------------------------------------- |
+| `VITE_API_BASE_URL`      | The Render address, e.g. `https://salary-management-api.onrender.com` |
+| `VITE_HIDE_DEMO_ACCOUNT` | Optional: `true` hides the demo account on the sign-in page           |
 
 3. Copy the Vercel address into the API's `CORS_ORIGIN` on Render. Render redeploys when a variable changes.
 
 ### Notes
 
 - **Cold starts.** Render's free plan stops the API after about 15 minutes without traffic, and the next request then takes 30–60 seconds. An uptime monitor that calls `/health` every 10 minutes keeps it awake. Neon also suspends an idle database, which adds about a second to the first query.
-- **Sign-in from the browser.** The web app sends `X-Requested-With: XMLHttpRequest`. The API then leaves the Basic challenge off a 401, so a wrong password shows the app's message rather than the browser's own sign-in dialog.
+- **Sessions.** The web app signs in once and sends the session token as a Bearer header. When a session expires, the next request returns 401 and the app goes back to the sign-in page.
 - **CORS.** Only the origins in `CORS_ORIGIN` may call the API from a browser. The token travels in the `Authorization` header, so no cookies or credentialed CORS are involved.

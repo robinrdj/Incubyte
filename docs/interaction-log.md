@@ -804,3 +804,38 @@ The directory and every employee profile downloaded the whole out-of-band report
 **Deploy note:** Render did not build the push on its own. The service was created through the manual form, which seems to have left auto-deploy off. The user started the deploy by hand. Vercel built the push automatically.
 
 **Process change from the user:** do not run tests after each change. Run them only when asked.
+
+---
+
+## 2026-11-25 — Stage 10b: HR users, folder structure, design version 3
+
+**User request:**
+
+- Put the demo account details on the sign-in page.
+- Let HR users create new HR users.
+- Keep tests in a separate tests folder.
+- Design a better sign-in page and improve the other pages, recording the current design so it can be restored.
+- Improve the folder structure, and remove comments that add nothing.
+- Rename `apps/api` and `apps/web` to `apps/backend` and `apps/frontend`.
+- Do not run tests unless asked.
+
+**Design decisions:**
+
+- **Session tokens instead of HTTP Basic.** HR users now live in the database with scrypt password hashes. Checking a hash on every request would be slow on a 0.1-CPU host, so `POST /api/session` checks the password once and returns a random token. The token is stored only as a SHA-256 hash and expires after 12 hours, and every other request sends it as `Authorization: Bearer`. Sign-in gives the same message for an unknown email and a wrong password. Bearer 401s carry no Basic challenge, so the `X-Requested-With` workaround is gone.
+- **The first account comes from configuration.** When the users table is empty, the API creates the first HR user from `HR_EMAIL` and `HR_PASSWORD` at startup. On Render that is the demo account, so the built-in demo details on the sign-in page work with no extra setup. Any signed-in HR user can add others; v1 has no roles.
+- **The demo account is built in.** The sign-in page shows it by default, with copy buttons and a one-click sign-in. `VITE_HIDE_DEMO_ACCOUNT=true` hides it for a deployment with real data.
+- **Expired sessions sign out.** The API client reports a 401 on a signed-in request, and the app returns to the sign-in page rather than showing errors on every screen.
+- **Tests outside the source tree.**
+  - Backend: `tests/unit` mirrors `src/`, and `tests/integration` holds the API tests. The `.integration` part of their names was dropped.
+  - Frontend: `tests/` mirrors `src/`, with helpers in `tests/support`.
+  - A script moved each file and rewrote its relative imports.
+- **Structure.** The theme files moved to `src/theme`. `BrandMark` and `UserMenu` became components. The demo account moved to `src/auth`. The unused Stage 0 `getServiceName` module was deleted. The two copies of `actorOf` became one `currentActor` helper. The integration tests build the app through one `createTestApp` helper, so the setup is no longer repeated in each file.
+- **Comments.** Comments that restated the code or described history were removed. Comments that explain a reason or a contract stay.
+- **Design version 3** (see `docs/design-history.md`, which also records versions 1 and 2 with their commits):
+  - Sign-in page: a backdrop with soft glows and a dot grid, a pitch with a product preview, and the demo account inside the sign-in card.
+  - Navigation grouped into Workspace and Administration, with an account menu in the header.
+  - Icon tiles on page headers.
+
+**Verification:** both apps typecheck and lint clean. Tests were updated for sessions (new `session.test.ts` and `users.test.ts` on the backend, `UsersPage.test.tsx` and a rewritten `App.test.tsx` on the frontend) but **not run**, as asked.
+
+**Blocked:** `apps/web` could not be renamed while a dev server on port 5173, from the user's VS Code terminal, held the folder open.
