@@ -31,6 +31,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useAuth } from "../auth/AuthContext.js";
 import { BandBadge } from "../components/BandBadge.js";
+import { ExportCsvButton } from "../components/ExportCsvButton.js";
 import { MedianBars } from "../components/MedianBars.js";
 import { PageHeader } from "../components/PageHeader.js";
 import { useAsync } from "../hooks/useAsync.js";
@@ -157,6 +158,7 @@ function CompensationView({
   report: CompensationReportDto;
   updating: boolean;
 }): React.JSX.Element {
+  const { api } = useAuth();
   const groupName = GROUP_OPTIONS.find((o) => o.value === report.groupBy)?.label ?? "Group";
 
   return (
@@ -192,14 +194,20 @@ function CompensationView({
               {report.asOf}
             </Text>
           </div>
-          {updating && (
-            <Group gap={6} role="status" aria-live="polite" wrap="nowrap">
-              <Loader size="xs" />
-              <Text size="sm" c="dimmed">
-                Updating…
-              </Text>
-            </Group>
-          )}
+          <Group gap="md" wrap="nowrap">
+            {updating && (
+              <Group gap={6} role="status" aria-live="polite" wrap="nowrap">
+                <Loader size="xs" />
+                <Text size="sm" c="dimmed">
+                  Updating…
+                </Text>
+              </Group>
+            )}
+            <ExportCsvButton
+              filename={`compensation-by-${report.groupBy}-${report.asOf}.csv`}
+              load={() => api.compensationCsv(report.groupBy, report.asOf)}
+            />
+          </Group>
         </Group>
         <MedianBars
           bars={report.groups.map((group) => ({
@@ -307,20 +315,31 @@ const BandViolationsCard = memo(function BandViolationsCard({
           </Text>
         </div>
         {report !== undefined && outside > 0 && (
-          <SegmentedControl
-            size="xs"
-            value={filter}
-            onChange={(value) => {
-              setFilter(value);
-              setPage(1);
-            }}
-            data={[
-              { value: "ALL", label: `All ${outside.toLocaleString("en-US")}` },
-              { value: "BELOW", label: `Below ${report.below.toLocaleString("en-US")}` },
-              { value: "ABOVE", label: `Above ${report.above.toLocaleString("en-US")}` },
-            ]}
-            aria-label="Show employees"
-          />
+          <Group gap="sm" wrap="wrap">
+            <SegmentedControl
+              size="xs"
+              value={filter}
+              onChange={(value) => {
+                setFilter(value);
+                setPage(1);
+              }}
+              data={[
+                { value: "ALL", label: `All ${outside.toLocaleString("en-US")}` },
+                { value: "BELOW", label: `Below ${report.below.toLocaleString("en-US")}` },
+                { value: "ABOVE", label: `Above ${report.above.toLocaleString("en-US")}` },
+              ]}
+              aria-label="Show employees"
+            />
+            <ExportCsvButton
+              filename={`pay-band-${filter === "ALL" ? "outside" : filter.toLowerCase()}-${report.asOf}.csv`}
+              load={() =>
+                api.bandViolationsCsv({
+                  asOf: report.asOf,
+                  ...(filter === "ALL" ? {} : { position: filter }),
+                })
+              }
+            />
+          </Group>
         )}
       </Group>
 

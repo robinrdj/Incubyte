@@ -146,6 +146,16 @@ export class ApiClient {
     return this.getJson(`/api/analytics/band-violations${params}`);
   }
 
+  compensationCsv(groupBy: GroupBy, asOf?: string): Promise<string> {
+    return this.requestText(`/api/analytics/compensation.csv${toQueryString({ groupBy, asOf })}`);
+  }
+
+  /** Every matching person, not one page. */
+  bandViolationsCsv(query: Pick<BandViolationQuery, "asOf" | "position"> = {}): Promise<string> {
+    const params = toQueryString({ asOf: query.asOf, position: query.position });
+    return this.requestText(`/api/analytics/band-violations.csv${params}`);
+  }
+
   importEmployees(csv: string, dryRun: boolean): Promise<ImportReportDto> {
     const query = toQueryString({ dryRun: dryRun ? "true" : undefined });
     return this.request<ImportReportDto>("POST", `/api/employees/import${query}`, {

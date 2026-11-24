@@ -342,3 +342,40 @@ describe("employees outside their band", () => {
     expect(bandRequests(recorded).at(-1)?.get("page")).toBe("1");
   });
 });
+
+describe("exporting analytics", () => {
+  const createObjectURL = vi.fn(() => "blob:test");
+
+  beforeEach(() => {
+    createObjectURL.mockClear();
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("downloads the table for the grouping and date on screen", async () => {
+    const recorded = installFakeApi([
+      { method: "GET", path: "/api/analytics/compensation", body: COMPENSATION },
+      { method: "GET", path: "/api/analytics/compensation.csv", body: "country,headcount" },
+      { method: "GET", path: "/api/analytics/band-violations", body: bandReport() },
+    ]);
+    const user = userEvent.setup();
+    renderAt("/analytics", <AnalyticsPage />);
+    const table = await screen.findByRole("table", { name: "Compensation by country" });
+    const card = table.closest(".mantine-Card-root") as HTMLElement;
+
+    await user.click(within(card).getByRole("button", { name: "Export CSV" }));
+
+    await waitFor(() => {
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+    });
+    const request = recorded.find((r) => r.url.startsWith("/api/analytics/compensation.csv"));
+    const params = new URL(request?.url ?? "", "http://x").searchParams;
+    expect(params.get("groupBy")).toBe("country");
+    expect(params.get("asOf")).toBe("2026-11-23");
+  });
+});
