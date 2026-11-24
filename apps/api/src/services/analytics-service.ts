@@ -1,4 +1,5 @@
-import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
+import { Prisma, type PrismaClient } from "../generated/prisma/client.js";
+import type { BandViolationsQuery } from "../http/schemas.js";
 import {
   groupItems,
   summarizeCompensation,
@@ -121,10 +122,10 @@ export class AnalyticsService {
   }
 
   /** Active employees whose salary is below or above their level and country pay band. */
-  async bandViolations(asOf?: string): Promise<BandViolationReportDto> {
-    const date = asOf ?? toDateOnly(this.clock());
+  async bandViolations(query: BandViolationsQuery = {}): Promise<BandViolationReportDto> {
+    const date = query.asOf ?? toDateOnly(this.clock());
     const [{ points }, bands, rates] = await Promise.all([
-      this.currentSalaries(date),
+      this.currentSalaries(date, query.employeeIds),
       this.db.payBand.findMany({ include: payBandInclude }),
       this.loadRates(date),
     ]);
@@ -172,8 +173,30 @@ export class AnalyticsService {
       });
     }
 
-    items.sort((a, b) => a.employeeCode.localeCompare(b.employeeCode));
-    return { asOf: date, currency: REPORTING_CURRENCY, evaluated, withoutBand, items };
+    const below = items.filter((item) => item.position === "BELOW").length;
+    const matching = items
+      .filter((item) => query.position === undefined || item.position === query.position)
+      .sort(
+        (a, b) =>
+          Math.abs(b.compaRatio - 1) - Math.abs(a.compaRatio - 1) ||
+          a.employeeCode.localeCompare(b.employeeCode),
+      );
+    // Without paging, every row is returned, as one page.
+    const pageSize = query.pageSize ?? Math.max(matching.length, 1);
+    const page = query.page ?? 1;
+
+    return {
+      asOf: date,
+      currency: REPORTING_CURRENCY,
+      evaluated,
+      withoutBand,
+      below,
+      above: items.length - below,
+      total: matching.length,
+      page,
+      pageSize,
+      items: matching.slice((page - 1) * pageSize, page * pageSize),
+    };
   }
 
   /**
@@ -182,7 +205,12 @@ export class AnalyticsService {
    */
   private async currentSalaries(
     asOf: string,
+    employeeIds?: readonly string[],
   ): Promise<{ points: SalaryPoint[]; excludedWithoutSalary: number }> {
+    const onlyThese =
+      employeeIds === undefined
+        ? Prisma.empty
+        : Prisma.sql`AND e."id" = ANY(${[...employeeIds]}::uuid[])`;
     // One query, with the current salary chosen in the database (DISTINCT ON the latest record on
     // or before the date) and only the columns the analytics use. The ORM version made five
     // queries and built a full object per employee, which took 6-7 s on a 0.1-CPU host.
@@ -207,7 +235,7 @@ export class AnalyticsService {
         JOIN "Level" l      ON l."id" = e."levelId"
         LEFT JOIN "SalaryRecord" s
           ON s."employeeId" = e."id" AND s."effectiveFrom" <= ${fromDateOnly(asOf)}::date
-        WHERE e."status" = 'ACTIVE'
+        WHERE e."status" = 'ACTIVE' ${onlyThese}
         ORDER BY e."id", s."effectiveFrom" DESC
       `,
       this.loadRates(asOf),

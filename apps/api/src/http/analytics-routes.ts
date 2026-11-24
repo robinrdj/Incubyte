@@ -13,7 +13,7 @@ export function createAnalyticsRouter(service: AnalyticsService): Router {
 
   router.get("/analytics/band-violations", async (req, res) => {
     const query = bandViolationsQuerySchema.parse(req.query);
-    res.json(await service.bandViolations(query.asOf));
+    res.json(await service.bandViolations(query));
   });
 
   return router;

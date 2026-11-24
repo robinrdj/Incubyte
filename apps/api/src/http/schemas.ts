@@ -98,9 +98,29 @@ export const compensationQuerySchema = z.object({
   asOf: asOfDate,
 });
 
+export const MAX_BAND_PAGE_SIZE = 100;
+
 export const bandViolationsQuerySchema = z.object({
   asOf: asOfDate,
+  /** Comma-separated employee ids. */
+  employeeIds: z
+    .string()
+    .optional()
+    .transform((value) =>
+      value === undefined
+        ? undefined
+        : value
+            .split(",")
+            .map((id) => id.trim())
+            .filter((id) => id !== ""),
+    )
+    .pipe(z.array(z.uuid("must be valid ids")).max(MAX_BAND_PAGE_SIZE).optional()),
+  position: z.enum(["BELOW", "ABOVE"]).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(MAX_BAND_PAGE_SIZE).optional(),
 });
+
+export type BandViolationsQuery = z.infer<typeof bandViolationsQuerySchema>;
 
 export type CompensationQuery = z.infer<typeof compensationQuerySchema>;
 

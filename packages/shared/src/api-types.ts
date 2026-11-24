@@ -113,9 +113,28 @@ export interface BandViolationDto {
 export interface BandViolationReportDto {
   asOf: string;
   currency: string;
+  /** Employees compared with a band (in the chosen set, if employeeIds was given). */
   evaluated: number;
   withoutBand: number;
+  /** Everyone outside their band, before the position filter: below plus above. */
+  below: number;
+  above: number;
+  /** Rows matching the position filter, across all pages. */
+  total: number;
+  page: number;
+  pageSize: number;
+  /** Furthest from the band midpoint first, then by employee code. */
   items: BandViolationDto[];
+}
+
+export interface BandViolationQuery {
+  asOf?: string;
+  /** Only these employees (up to 100), for a page of the directory or one profile. */
+  employeeIds?: string[];
+  position?: "BELOW" | "ABOVE";
+  /** Omit page and pageSize to get every row. */
+  page?: number;
+  pageSize?: number;
 }
 
 export interface ImportRowErrorDto {
