@@ -792,3 +792,15 @@ The directory and every employee profile downloaded the whole out-of-band report
 - `npm run check` passes. Live timings are measured after the deploy.
 
 **Note:** the local dev servers were stopped by Claude Code because the machine ran low on memory. They are not restarted.
+
+**Result after the deploy** (live API, warm):
+
+| Request                                 | Before        | After          |
+| --------------------------------------- | ------------- | -------------- |
+| Band badges for a directory page        | 9.1 s, 879 KB | 0.86 s, 2.5 KB |
+| Out-of-band list on Analytics (25 rows) | 9.1 s, 879 KB | 1.66 s, 8.6 KB |
+| One analytics grouping                  | 6.0 s         | 1.3–1.7 s      |
+
+**Deploy note:** Render did not build the push on its own. The service was created through the manual form, which seems to have left auto-deploy off. The user started the deploy by hand. Vercel built the push automatically.
+
+**Process change from the user:** do not run tests after each change. Run them only when asked.
