@@ -52,3 +52,12 @@ One persona: the **HR Manager**. v1 has a single account. There are no roles or 
 - Each employee has one current base salary at a time.
 - Bands are defined per level and country, which is how most HR teams already work.
 - **Open:** Should a salary change require approval before it takes effect? v1 assumes no. Confirm with the HR Manager.
+
+## 7. Changes During Delivery
+
+This document was written before building. Changes made in response to testing:
+
+- **Accounts.** The single basic-auth credential became HR user accounts with email sign-in and session tokens. Any HR user can add colleagues. There are still no roles.
+- **Settings.** HR maintains dated FX rates and pay bands in the app, instead of only through the seed.
+- **Salary history.** It is still append-only, but a change dated on the current record's own date now corrects that record. The audit trail keeps both values.
+- **Analytics computation.** One SQL query loads each employee's current salary. The median and other statistics run in the tested domain code, matching PostgreSQL's `percentile_cont`, instead of SQL aggregates. The figures are identical, and the logic is unit-tested without a database.
