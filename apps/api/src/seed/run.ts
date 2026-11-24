@@ -1,4 +1,5 @@
 import { createPrismaClient } from "../db/prisma.js";
+import { adminDatabaseUrl } from "../db/urls.js";
 import { DEFAULT_SEED, generateDataset } from "./dataset.js";
 import { loadDataset } from "./load.js";
 
@@ -9,10 +10,8 @@ import { loadDataset } from "./load.js";
  *   npm run seed -- --seed=7     use a different (still reproducible) seed
  */
 async function main(): Promise<void> {
-  const url = process.env["DATABASE_URL"];
-  if (!url) {
-    throw new Error("DATABASE_URL is required");
-  }
+  const url = adminDatabaseUrl(process.env);
+  console.log(`seeding ${describeTarget(url)}`);
 
   const reset = process.argv.includes("--reset");
   const seedArg = process.argv.find((arg) => arg.startsWith("--seed="));
@@ -32,6 +31,16 @@ async function main(): Promise<void> {
     console.log(JSON.stringify(report, null, 2));
   } finally {
     await db.$disconnect();
+  }
+}
+
+/** The host and database name, without the password, so the log shows where the data is going. */
+function describeTarget(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.hostname}${parsed.pathname}`;
+  } catch {
+    return "the configured database";
   }
 }
 

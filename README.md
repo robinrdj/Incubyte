@@ -118,6 +118,26 @@ Every `/api` route requires HTTP Basic authentication. `GET /health` is public.
 | PUT    | `/api/settings/pay-bands/:countryCode/:levelCode` | Set `{ minAmount, maxAmount }` for a level in a country. Creates the band if it is missing. The minimum must be above zero and the maximum at or above it.                                                                           |
 | GET    | `/api/employees/export.csv`                       | Export employees matching the list filters, in the same columns the import accepts.                                                                                                                                                  |
 
+### Hosted database (Neon)
+
+Production uses [Neon](https://neon.tech) PostgreSQL. Neon gives two connection strings for the same database:
+
+| Variable              | Neon string                                             | Used by                 |
+| --------------------- | ------------------------------------------------------- | ----------------------- |
+| `DATABASE_URL`        | **Pooled** (the host contains `-pooler`)                | The running API         |
+| `DIRECT_DATABASE_URL` | **Direct** (Connect dialog with connection pooling off) | Migrations and the seed |
+
+When `DIRECT_DATABASE_URL` is set, `npm run db:deploy` and `npm run seed` use it. Otherwise they use `DATABASE_URL`, as in local development. A variable set in the shell takes priority over `.env`, so a one-off run against Neon needs no file changes. In PowerShell, from `apps/api`:
+
+```powershell
+$env:DIRECT_DATABASE_URL = "<direct connection string>"
+npm run db:deploy   # create the tables
+npm run seed        # load the 10,000 employees, default FX rates, and pay bands
+Remove-Item Env:DIRECT_DATABASE_URL
+```
+
+Both commands print the host and database they target, never the password. Keep the API in the same region as the database, because every request makes database round trips.
+
 ### Seed data
 
 `npm run seed` (in `apps/api`) loads 10,000 reproducible employees across 10 countries, with reference data, default FX rates (two dates per currency), and a pay band for every level in every country. Names come from a pool for each region, so a German office has German names, and no two employees share a full name. HR changes these on the **Settings** page. The same seed always produces the same data.
