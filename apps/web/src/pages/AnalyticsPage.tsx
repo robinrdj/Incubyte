@@ -1,11 +1,16 @@
 import {
   Alert,
+  Badge,
+  Box,
   Button,
   Card,
   Group,
   Loader,
+  Pagination,
+  SegmentedControl,
   Select,
   SimpleGrid,
+  Skeleton,
   Stack,
   Table,
   Text,
@@ -13,6 +18,8 @@ import {
   ThemeIcon,
   Title,
 } from "@mantine/core";
+import { useDebouncedValue } from "@mantine/hooks";
+import type { BandViolationReportDto, CompensationReportDto, GroupBy } from "@salary/shared";
 import {
   IconArrowDownRight,
   IconArrowUpRight,
@@ -20,21 +27,27 @@ import {
   IconMathAvg,
   IconUsers,
 } from "@tabler/icons-react";
-import type { GroupBy } from "@salary/shared";
-import { useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useAuth } from "../auth/AuthContext.js";
 import { BandBadge } from "../components/BandBadge.js";
 import { MedianBars } from "../components/MedianBars.js";
+import { PageHeader } from "../components/PageHeader.js";
 import { useAsync } from "../hooks/useAsync.js";
 import { errorMessage } from "../lib/errors.js";
 import { formatMoney } from "../lib/format.js";
 
-const GROUP_OPTIONS = [
+const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
   { value: "country", label: "Country" },
   { value: "department", label: "Department" },
   { value: "level", label: "Level" },
 ];
+
+/** Rows per page in the out-of-band list. */
+export const BAND_PAGE_SIZE = 25;
+
+/** How long a reload must take before "Updating" appears, so cached switches do not flicker. */
+const UPDATING_DELAY_MS = 150;
 
 const money = (value: string | null): string => (value === null ? "—" : formatMoney(value, "USD"));
 
@@ -44,56 +57,79 @@ export function AnalyticsPage(): React.JSX.Element {
   const [groupBy, setGroupBy] = useState<GroupBy>("country");
   const [asOf, setAsOf] = useState("");
 
-  const compensation = useAsync(
-    (group: GroupBy, date: string) => api.compensation(group, date === "" ? undefined : date),
-    [groupBy, asOf],
+  // Each grouping costs a full pass over the salaries, so results are kept per grouping and date.
+  // Switching back is instant, and the other groupings are fetched once the first one has loaded.
+  const cache = useRef(new Map<string, Promise<CompensationReportDto>>());
+  const loadCompensation = useCallback(
+    (group: GroupBy, date: string): Promise<CompensationReportDto> => {
+      const key = `${group}|${date}`;
+      const cached = cache.current.get(key);
+      if (cached !== undefined) return cached;
+      const request = api.compensation(group, date === "" ? undefined : date);
+      cache.current.set(key, request);
+      // A failed request is not kept, so the next attempt asks the API again.
+      request.catch(() => cache.current.delete(key));
+      return request;
+    },
+    [api],
   );
+
+  const compensation = useAsync(loadCompensation, [groupBy, asOf]);
   const bands = useAsync(
     (date: string) => api.bandViolations(date === "" ? undefined : date),
     [asOf],
   );
 
+  const firstLoaded = compensation.data !== undefined;
+  useEffect(() => {
+    if (!firstLoaded) return;
+    for (const option of GROUP_OPTIONS) {
+      loadCompensation(option.value, asOf).catch(() => undefined);
+    }
+  }, [firstLoaded, asOf, loadCompensation]);
+
+  const [slowLoading] = useDebouncedValue(compensation.loading, UPDATING_DELAY_MS);
+  const updating = compensation.loading && slowLoading && compensation.data !== undefined;
+
   return (
-    <Stack>
-      <Group justify="space-between" wrap="wrap" align="flex-end">
-        <div>
-          <Title order={2}>Analytics</Title>
-          <Text c="dimmed" size="sm">
-            Active employees, in US dollars at the exchange rate in force on the chosen date.
-          </Text>
-        </div>
-        <Group align="flex-end" wrap="wrap">
-          <Select
-            label="Group by"
-            data={GROUP_OPTIONS}
-            value={groupBy}
-            onChange={(value) => {
-              setGroupBy((value ?? "country") as GroupBy);
-            }}
-            allowDeselect={false}
-            w={180}
-          />
-          <TextInput
-            label="As of (optional)"
-            type="date"
-            value={asOf}
-            onChange={(event) => {
-              setAsOf(event.currentTarget.value);
-            }}
-            w={180}
-          />
-          {asOf !== "" && (
-            <Button
-              variant="subtle"
-              onClick={() => {
-                setAsOf("");
+    <Stack gap="lg">
+      <PageHeader
+        title="Analytics"
+        description="Active employees, in US dollars at the exchange rate in force on the chosen date."
+        actions={
+          <>
+            <Select
+              label="Group by"
+              data={GROUP_OPTIONS}
+              value={groupBy}
+              onChange={(value) => {
+                setGroupBy(value ?? "country");
               }}
-            >
-              Use today
-            </Button>
-          )}
-        </Group>
-      </Group>
+              allowDeselect={false}
+              w={170}
+            />
+            <TextInput
+              label="As of (optional)"
+              type="date"
+              value={asOf}
+              onChange={(event) => {
+                setAsOf(event.currentTarget.value);
+              }}
+              w={170}
+            />
+            {asOf !== "" && (
+              <Button
+                variant="subtle"
+                onClick={() => {
+                  setAsOf("");
+                }}
+              >
+                Use today
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {compensation.error !== null && (
         <Alert
@@ -106,115 +142,236 @@ export function AnalyticsPage(): React.JSX.Element {
         </Alert>
       )}
 
-      {compensation.data === undefined && compensation.loading ? (
-        <Loader aria-label="Loading analytics" />
-      ) : compensation.data !== undefined ? (
-        <>
-          <SimpleGrid cols={{ base: 2, sm: 3, lg: 5 }}>
-            <Stat
-              label="Headcount"
-              value={compensation.data.overall.headcount.toLocaleString("en-US")}
-              icon={IconUsers}
-            />
-            <Stat
-              label="Median"
-              value={money(compensation.data.overall.medianUsd)}
-              icon={IconChartBar}
-            />
-            <Stat
-              label="Average"
-              value={money(compensation.data.overall.averageUsd)}
-              icon={IconMathAvg}
-            />
-            <Stat
-              label="Lowest"
-              value={money(compensation.data.overall.minUsd)}
-              icon={IconArrowDownRight}
-            />
-            <Stat
-              label="Highest"
-              value={money(compensation.data.overall.maxUsd)}
-              icon={IconArrowUpRight}
-            />
-          </SimpleGrid>
-          {compensation.data.excludedWithoutSalary > 0 && (
-            <Text size="sm" c="dimmed">
-              {compensation.data.excludedWithoutSalary} active employee(s) had no salary on this
-              date and are not counted.
-            </Text>
-          )}
+      {compensation.data === undefined ? (
+        compensation.loading && <CompensationSkeleton />
+      ) : (
+        <CompensationView report={compensation.data} updating={updating} />
+      )}
 
-          <Card>
-            <Title order={4} mb="md">
-              Median pay by {groupBy}
-            </Title>
-            <MedianBars
-              bars={compensation.data.groups.map((group) => ({
-                label: group.label,
-                medianUsd: group.summary.medianUsd,
-              }))}
-            />
-            <Table.ScrollContainer minWidth={640} mt="md">
-              <Table striped aria-label={`Compensation by ${groupBy}`}>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Group</Table.Th>
-                    <Table.Th>Headcount</Table.Th>
-                    <Table.Th>Median</Table.Th>
-                    <Table.Th>Average</Table.Th>
-                    <Table.Th>Lowest</Table.Th>
-                    <Table.Th>Highest</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {compensation.data.groups.map((group) => (
-                    <Table.Tr key={group.key}>
-                      <Table.Td>{group.label}</Table.Td>
-                      <Table.Td>{group.summary.headcount}</Table.Td>
-                      <Table.Td>{money(group.summary.medianUsd)}</Table.Td>
-                      <Table.Td>{money(group.summary.averageUsd)}</Table.Td>
-                      <Table.Td>{money(group.summary.minUsd)}</Table.Td>
-                      <Table.Td>{money(group.summary.maxUsd)}</Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-            </Table.ScrollContainer>
-          </Card>
-        </>
-      ) : null}
+      <BandViolationsCard report={bands.data} loading={bands.loading} error={bands.error} />
+    </Stack>
+  );
+}
+
+function CompensationView({
+  report,
+  updating,
+}: {
+  report: CompensationReportDto;
+  updating: boolean;
+}): React.JSX.Element {
+  const groupName = GROUP_OPTIONS.find((o) => o.value === report.groupBy)?.label ?? "Group";
+
+  return (
+    <Stack
+      gap="lg"
+      aria-busy={updating}
+      style={{ opacity: updating ? 0.55 : 1, transition: "opacity 150ms ease" }}
+    >
+      <SimpleGrid cols={{ base: 2, sm: 3, lg: 5 }}>
+        <Stat
+          label="Headcount"
+          value={report.overall.headcount.toLocaleString("en-US")}
+          icon={IconUsers}
+        />
+        <Stat label="Median" value={money(report.overall.medianUsd)} icon={IconChartBar} />
+        <Stat label="Average" value={money(report.overall.averageUsd)} icon={IconMathAvg} />
+        <Stat label="Lowest" value={money(report.overall.minUsd)} icon={IconArrowDownRight} />
+        <Stat label="Highest" value={money(report.overall.maxUsd)} icon={IconArrowUpRight} />
+      </SimpleGrid>
+      {report.excludedWithoutSalary > 0 && (
+        <Text size="sm" c="dimmed">
+          {report.excludedWithoutSalary} active employee(s) had no salary on this date and are not
+          counted.
+        </Text>
+      )}
 
       <Card>
-        <Title order={4}>Pay bands</Title>
-        {bands.error !== null && (
-          <Alert color="red" role="alert" variant="light" mt="sm">
-            {errorMessage(bands.error)}
-          </Alert>
-        )}
-        {bands.data !== undefined && (
-          <>
-            <Text size="sm" c="dimmed" mt="xs" mb="md">
-              {bands.data.evaluated} evaluated · {bands.data.items.length} outside their band ·{" "}
-              {bands.data.withoutBand} without a band for their level and country
+        <Group justify="space-between" mb="md" wrap="nowrap">
+          <div>
+            <Title order={4}>Median pay by {groupName.toLowerCase()}</Title>
+            <Text size="sm" c="dimmed">
+              {report.groups.length} {report.groups.length === 1 ? "group" : "groups"}, as of{" "}
+              {report.asOf}
             </Text>
-            {bands.data.items.length === 0 ? (
-              <Text>Everyone evaluated is within their band.</Text>
-            ) : (
-              <Table.ScrollContainer minWidth={720}>
-                <Table striped aria-label="Employees outside their pay band">
+          </div>
+          {updating && (
+            <Group gap={6} role="status" aria-live="polite" wrap="nowrap">
+              <Loader size="xs" />
+              <Text size="sm" c="dimmed">
+                Updating…
+              </Text>
+            </Group>
+          )}
+        </Group>
+        <MedianBars
+          bars={report.groups.map((group) => ({
+            label: group.label,
+            medianUsd: group.summary.medianUsd,
+          }))}
+        />
+        <Table.ScrollContainer minWidth={640} mt="lg">
+          <Table striped aria-label={`Compensation by ${report.groupBy}`}>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>{groupName}</Table.Th>
+                <Table.Th ta="right">Headcount</Table.Th>
+                <Table.Th ta="right">Median</Table.Th>
+                <Table.Th ta="right">Average</Table.Th>
+                <Table.Th ta="right">Lowest</Table.Th>
+                <Table.Th ta="right">Highest</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {report.groups.map((group) => (
+                <Table.Tr key={group.key}>
+                  <Table.Td fw={500}>{group.label}</Table.Td>
+                  <Table.Td ta="right">{group.summary.headcount.toLocaleString("en-US")}</Table.Td>
+                  <Table.Td ta="right">{money(group.summary.medianUsd)}</Table.Td>
+                  <Table.Td ta="right">{money(group.summary.averageUsd)}</Table.Td>
+                  <Table.Td ta="right">{money(group.summary.minUsd)}</Table.Td>
+                  <Table.Td ta="right">{money(group.summary.maxUsd)}</Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
+      </Card>
+    </Stack>
+  );
+}
+
+/** Placeholder in the shape of the dashboard while the first figures load. */
+function CompensationSkeleton(): React.JSX.Element {
+  return (
+    <Stack gap="lg" aria-busy="true" aria-label="Loading analytics">
+      <SimpleGrid cols={{ base: 2, sm: 3, lg: 5 }}>
+        {Array.from({ length: 5 }, (_, index) => (
+          <Card key={index} padding="md">
+            <Skeleton height={10} width="45%" radius="sm" />
+            <Skeleton height={22} width="75%" radius="sm" mt="md" />
+          </Card>
+        ))}
+      </SimpleGrid>
+      <Card>
+        <Skeleton height={16} width={220} radius="sm" />
+        <Skeleton height={10} width={140} radius="sm" mt="xs" mb="lg" />
+        {[92, 78, 64, 55, 47, 38].map((width) => (
+          <Group key={width} gap="sm" wrap="nowrap" mb={10}>
+            <Skeleton height={12} width={120} radius="sm" />
+            <Skeleton height={12} width={`${String(width)}%`} radius="sm" />
+          </Group>
+        ))}
+      </Card>
+    </Stack>
+  );
+}
+
+type PositionFilter = "ALL" | "BELOW" | "ABOVE";
+
+/**
+ * Employees outside their band, furthest from the band first, a page at a time. Memoised so that
+ * changing the grouping above does not re-render this list: it can hold thousands of people.
+ */
+const BandViolationsCard = memo(function BandViolationsCard({
+  report,
+  loading,
+  error,
+}: {
+  report: BandViolationReportDto | undefined;
+  loading: boolean;
+  error: unknown;
+}): React.JSX.Element {
+  const [filter, setFilter] = useState<PositionFilter>("ALL");
+  const [page, setPage] = useState(1);
+
+  const counts = useMemo(() => {
+    const items = report?.items ?? [];
+    const below = items.filter((item) => item.position === "BELOW").length;
+    return { below, above: items.length - below };
+  }, [report]);
+
+  const sorted = useMemo(
+    () =>
+      (report?.items ?? [])
+        .filter((item) => filter === "ALL" || item.position === filter)
+        .sort((a, b) => Math.abs(b.compaRatio - 1) - Math.abs(a.compaRatio - 1)),
+    [report, filter],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / BAND_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const visible = sorted.slice((currentPage - 1) * BAND_PAGE_SIZE, currentPage * BAND_PAGE_SIZE);
+
+  return (
+    <Card>
+      <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
+        <div>
+          <Title order={4}>Outside their pay band</Title>
+          <Text size="sm" c="dimmed">
+            Furthest from their band first. Compa-ratio is salary divided by the band midpoint.
+          </Text>
+        </div>
+        {report !== undefined && report.items.length > 0 && (
+          <SegmentedControl
+            size="xs"
+            value={filter}
+            onChange={(value) => {
+              setFilter(value);
+              setPage(1);
+            }}
+            data={[
+              { value: "ALL", label: `All ${report.items.length.toLocaleString("en-US")}` },
+              { value: "BELOW", label: `Below ${counts.below.toLocaleString("en-US")}` },
+              { value: "ABOVE", label: `Above ${counts.above.toLocaleString("en-US")}` },
+            ]}
+            aria-label="Show employees"
+          />
+        )}
+      </Group>
+
+      {error !== null && (
+        <Alert color="red" role="alert" variant="light" mt="md">
+          {errorMessage(error)}
+        </Alert>
+      )}
+
+      {report === undefined && loading && (
+        <Stack gap="sm" mt="lg" aria-busy="true" aria-label="Loading pay bands">
+          {Array.from({ length: 5 }, (_, index) => (
+            <Skeleton key={index} height={28} radius="sm" />
+          ))}
+        </Stack>
+      )}
+
+      {report !== undefined && (
+        <>
+          <Group gap="xs" mt="md" mb="md">
+            <Badge color="gray">{report.evaluated.toLocaleString("en-US")} evaluated</Badge>
+            <Badge color="orange">{report.items.length.toLocaleString("en-US")} outside</Badge>
+            {report.withoutBand > 0 && (
+              <Badge color="red">{report.withoutBand.toLocaleString("en-US")} without a band</Badge>
+            )}
+          </Group>
+          {report.items.length === 0 ? (
+            <Text>Everyone evaluated is within their band.</Text>
+          ) : (
+            <>
+              <Table.ScrollContainer minWidth={760}>
+                <Table aria-label="Employees outside their pay band">
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>Employee</Table.Th>
                       <Table.Th>Country</Table.Th>
                       <Table.Th>Level</Table.Th>
-                      <Table.Th>Salary (USD)</Table.Th>
-                      <Table.Th>Band (USD)</Table.Th>
-                      <Table.Th>Compa-ratio</Table.Th>
+                      <Table.Th ta="right">Salary (USD)</Table.Th>
+                      <Table.Th ta="right">Band (USD)</Table.Th>
+                      <Table.Th ta="right">Compa-ratio</Table.Th>
                       <Table.Th>Position</Table.Th>
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
-                    {bands.data.items.map((item) => (
+                    {visible.map((item) => (
                       <Table.Tr key={item.employeeId}>
                         <Table.Td>
                           <Link to={`/employees/${item.employeeId}`}>
@@ -223,11 +380,11 @@ export function AnalyticsPage(): React.JSX.Element {
                         </Table.Td>
                         <Table.Td>{item.countryCode}</Table.Td>
                         <Table.Td>{item.levelCode}</Table.Td>
-                        <Table.Td>{money(item.salary.usd)}</Table.Td>
-                        <Table.Td>
+                        <Table.Td ta="right">{money(item.salary.usd)}</Table.Td>
+                        <Table.Td ta="right">
                           {money(item.band.minUsd)} – {money(item.band.maxUsd)}
                         </Table.Td>
-                        <Table.Td>{item.compaRatio.toFixed(2)}</Table.Td>
+                        <Table.Td ta="right">{item.compaRatio.toFixed(2)}</Table.Td>
                         <Table.Td>
                           <BandBadge position={item.position} />
                         </Table.Td>
@@ -236,14 +393,29 @@ export function AnalyticsPage(): React.JSX.Element {
                   </Table.Tbody>
                 </Table>
               </Table.ScrollContainer>
-            )}
-          </>
-        )}
-        {bands.data === undefined && bands.loading && <Loader aria-label="Loading pay bands" />}
-      </Card>
-    </Stack>
+              <Group justify="space-between" mt="md" wrap="wrap">
+                <Text size="sm" c="dimmed">
+                  Showing {((currentPage - 1) * BAND_PAGE_SIZE + 1).toLocaleString("en-US")}–
+                  {Math.min(currentPage * BAND_PAGE_SIZE, sorted.length).toLocaleString("en-US")} of{" "}
+                  {sorted.length.toLocaleString("en-US")}
+                </Text>
+                {totalPages > 1 && (
+                  <Pagination
+                    total={totalPages}
+                    value={currentPage}
+                    onChange={setPage}
+                    size="sm"
+                    aria-label="Out-of-band pages"
+                  />
+                )}
+              </Group>
+            </>
+          )}
+        </>
+      )}
+    </Card>
   );
-}
+});
 
 function Stat({
   label,
@@ -264,9 +436,11 @@ function Stat({
           <Icon size={16} stroke={1.7} />
         </ThemeIcon>
       </Group>
-      <Text fz={22} fw={700} mt={4}>
-        {value}
-      </Text>
+      <Box mt={4}>
+        <Text fz={22} fw={700} lh={1.3}>
+          {value}
+        </Text>
+      </Box>
     </Card>
   );
 }
