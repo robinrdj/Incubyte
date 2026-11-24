@@ -621,3 +621,46 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 **Not verified:** the look in a real browser. The Chrome extension is not connected, so the new styling, dark mode, and phone layout have only run in tests.
 
 **Note for the user:** The directory is sorted by surname, so page 1 opens on a run of one surname ("Abdullah", from Singapore). Every full name is different, but a sorted page groups surnames.
+
+---
+
+## 2026-11-24 — Stage 9d: Faster analytics, loading feedback, design polish
+
+**User request:** "Improve the analytics page loader. When I change group by it takes more time, and there is no feedback. The overall design looks great, but can we improve it further?"
+
+**What I measured first:**
+
+- One grouping request takes 0.42–0.64 s on 10,000 employees.
+- The out-of-band report is 879 KB and lists 2,590 employees, and the page rendered every one of them as a table row.
+- Changing "Group by" re-rendered the whole page, including those 2,590 rows. So the dropdown lagged even before the request started.
+- While the new grouping loaded, the old figures stayed on screen with no sign of a reload.
+
+**Design decisions:**
+
+- **The out-of-band list is a page at a time.** It shows 25 rows per page, sorted by distance from the band midpoint, so the people furthest out come first. Below and Above filters show their counts. The card is wrapped in `React.memo`, so a change to the grouping no longer re-renders it.
+- **Groupings are cached and prefetched.** Results are kept per grouping and date. After the first grouping loads, the other two are fetched in the background. Switching is then instant, and switching back never asks the API again. A failed request is not cached.
+- **Visible feedback on every reload.** While a grouping loads, the current figures stay on screen but dimmed, marked `aria-busy`, with "Updating…" by the chart title. The indicator waits 150 ms, so an instant cached switch does not flicker. The chart and table titles come from the data on screen, not from the dropdown, so they never mislabel stale figures.
+- **Skeletons instead of spinners** for the first load of the dashboard, the out-of-band list, the directory, and the employee profile, shaped like the content that replaces them.
+- **Design polish:**
+  - A shared `PageHeader` (title, description, actions) on every page.
+  - The directory: filters and table in one card, a search icon, avatar and email in the name column, a "Leaving" badge, a level badge, right-aligned salaries, an empty state with guidance, and dimmed rows while filters reload.
+  - The employee profile: a header card with avatar, job, department, country, code, level, and band.
+  - Settings: pill tabs with icons.
+  - Number columns are right-aligned and counts use thousands separators.
+
+**Verification:**
+
+- Web: 89 tests pass (5 new for groupings, 2 for the out-of-band list). They cover:
+  - the skeleton on the first load
+  - showing the chosen grouping
+  - prefetching the other two groupings, then switching back and forth with no further requests
+  - "Updating…" while a slow grouping loads, with the previous figures still on screen
+  - 25 rows per page, furthest from the band first
+  - the Below filter
+- API: 138 unit and 92 integration tests pass. `npm run check` passes.
+
+**Problems and fixes during the stage:**
+
+- Mantine Select options have no `option` role in jsdom. The tests pick the option by its text inside the dropdown, because "Country" also appears as a table header.
+
+**Not verified:** in a real browser. The Chrome extension is still not connected.
