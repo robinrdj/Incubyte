@@ -492,3 +492,52 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 
 - Maintaining FX rates and pay bands still has no screen or endpoint. This is needed before deployment.
 - Production hosting: serve the web app from the API, or enable CORS for a separate host. Decided in Stage 10.
+
+---
+
+## 2026-11-24 — Stage 9: Analytics and Data Exchange UI
+
+**User request:** The previous session closed by accident partway through Stage 9. In a new session: "Check whether Stage 9 is completed and then finish and commit it." The full assessment brief was pasted in again for context.
+
+**Picking the work back up:** Nothing carries over between sessions, so I rebuilt the context from this log, `docs/plan.md`, and `git status`. The screens and their tests were written but not committed. Lint failed with 13 errors, and the web suite reported two unhandled errors that came and went between runs. I also found one gap against the requirements (see below).
+
+**Design decisions:**
+
+- **The directory exports what it shows.** F7 says the export matches the current filter. The Import and export page only filters by country and status, so I added an **Export CSV** button to the directory. It sends the same filter object the list uses, including search, department, and level, so the two cannot drift apart. It is disabled when nothing matches.
+- **One column list.** `EMPLOYEE_CSV_COLUMNS` lives in `packages/shared`. The API import and the web template both use it, so the downloadable template always matches what the import accepts.
+- **Check, then import.** The import first runs as a dry run and lists the rows with errors. The **Import** button stays disabled until a check finds changes, and it states how many will be applied.
+- **CSV opens correctly in Excel.** Downloads start with a UTF-8 byte-order mark, written as the `\uFEFF` escape rather than an invisible character in the source. The import already ignores it.
+- **Bars without a chart library.** Median pay per group is shown as plain CSS bars next to a table with the same numbers. The bars are hidden from screen readers because the table carries the data, and nothing is conveyed by colour alone.
+
+**What was built:**
+
+- `packages/shared/src/csv-columns.ts`: the shared column order. The API import now uses it.
+- `pages/AnalyticsPage.tsx`: overall stat cards, a group-by selector, an optional "as of" date, median bars, a grouped table, and the employees outside their pay band with compa-ratio and links to their profiles.
+- `pages/DataExchangePage.tsx`: export by country and status, a blank template, and the two-step import with a row-level error table.
+- `pages/DirectoryPage.tsx`: the **Export CSV** button.
+- `components/MedianBars.tsx`, `lib/download.ts` (`downloadCsv`), and `lib/files.ts` (reads a file with FileReader, which works in every target browser and in jsdom).
+
+**Verification:**
+
+- Web tests: 67 pass across 8 files. They cover dashboard rendering, the group-by request, the band list, the dry run and its error table, applying an import, an unreadable file, the disabled import when nothing changes, the template columns and its byte-order mark, and the directory export with an active filter.
+- API: 131 unit and 77 integration tests pass. The integration tests ran against local PostgreSQL 18.
+- `npm run check` passes: build, typecheck, lint, format, and tests.
+- The web suite ran three times in a row with no unhandled errors.
+
+**Problems and fixes during the stage:**
+
+- 13 lint errors in the new files, mostly void arrow shorthands and one `async` test with no `await`. Fixed.
+- **Unhandled `scrollIntoView` errors.** Mantine's Select scrolls the chosen option into view on a timer, and jsdom has no `scrollIntoView`. Depending on timing, the call landed after a test ended. I stubbed it in `test/setup.ts`, next to the existing Mantine stubs.
+- **A byte-order-mark test that could not fail.** The template test removed an invisible character before comparing, so it never checked that the mark was there. Text decoding also drops the mark, so the test now reads the raw bytes and expects `EF BB BF`.
+- Removed a click in a test that proved nothing, and a component that only wrapped another one.
+- The shell and the edit tool both turned the `\uFEFF` escape into the raw character. I wrote it with a Node script and confirmed the bytes.
+
+**Not verified:**
+
+- **In a real browser.** This is still outstanding, as in Stages 7 and 8. The layout of the dashboard and the import screen at phone width is unchecked.
+- The time for a real 10,000-row import through the UI is still unmeasured.
+
+**Open decisions (unchanged, both needed before Stage 10):**
+
+- Maintaining FX rates and pay bands still has no screen or endpoint.
+- Production hosting: serve the web app from the API, or enable CORS for a separate host.

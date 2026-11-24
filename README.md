@@ -40,6 +40,15 @@ Sign in with the HR username and password from `.env`. The session lasts for the
 
 The API client (`src/api/client.ts`) is typed with the shared contract. A change to a response shape is a compile error in the web app.
 
+Screens:
+
+- **Employees.** Directory with search, filters, pagination, and a pay-band badge. **Export CSV** downloads exactly the employees the current filters show.
+- **Employee profile.** Edit details, view the salary timeline, and record a salary change.
+- **Analytics.** Headcount and median, average, lowest, and highest pay in USD, grouped by country, department, or level, with an optional "as of" date. Below that is the list of employees outside their pay band, with compa-ratio.
+- **Import and export.** Export by country and status, a blank template, and a two-step import: **Check file** runs a dry run and lists row-level errors, and **Import** applies the valid rows.
+
+CSV downloads start with a UTF-8 byte-order mark so Excel shows accented names correctly. The import ignores it.
+
 ## Getting started
 
 Requirements: Node 22 (see `.nvmrc`), Docker.
