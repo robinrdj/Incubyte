@@ -34,6 +34,7 @@ import { BandBadge } from "../components/BandBadge.js";
 import { MedianBars } from "../components/MedianBars.js";
 import { PageHeader } from "../components/PageHeader.js";
 import { useAsync } from "../hooks/useAsync.js";
+import { useRowLink } from "../hooks/useRowLink.js";
 import { errorMessage } from "../lib/errors.js";
 import { formatMoney } from "../lib/format.js";
 
@@ -282,6 +283,7 @@ const BandViolationsCard = memo(function BandViolationsCard({
   loading: boolean;
   error: unknown;
 }): React.JSX.Element {
+  const rowLink = useRowLink();
   const [filter, setFilter] = useState<PositionFilter>("ALL");
   const [page, setPage] = useState(1);
 
@@ -372,7 +374,7 @@ const BandViolationsCard = memo(function BandViolationsCard({
                   </Table.Thead>
                   <Table.Tbody>
                     {visible.map((item) => (
-                      <Table.Tr key={item.employeeId}>
+                      <Table.Tr key={item.employeeId} {...rowLink(`/employees/${item.employeeId}`)}>
                         <Table.Td>
                           <Link to={`/employees/${item.employeeId}`}>
                             {item.firstName} {item.lastName}

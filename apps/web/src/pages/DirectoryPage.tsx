@@ -26,6 +26,7 @@ import { useAuth } from "../auth/AuthContext.js";
 import { BandBadge } from "../components/BandBadge.js";
 import { PageHeader } from "../components/PageHeader.js";
 import { useAsync } from "../hooks/useAsync.js";
+import { useRowLink } from "../hooks/useRowLink.js";
 import { downloadCsv } from "../lib/download.js";
 import { errorMessage } from "../lib/errors.js";
 import { formatMoney } from "../lib/format.js";
@@ -51,6 +52,7 @@ export function DirectoryPage(): React.JSX.Element {
   const [status, setStatus] = useState<string>("");
   const [page, setPage] = useState(1);
 
+  const rowLink = useRowLink();
   const reference = useAsync(() => api.reference(), []);
   const bands = useAsync(() => api.bandViolations(), []);
 
@@ -249,7 +251,7 @@ export function DirectoryPage(): React.JSX.Element {
               </Table.Thead>
               <Table.Tbody>
                 {rows.map((employee) => (
-                  <Table.Tr key={employee.id}>
+                  <Table.Tr key={employee.id} {...rowLink(`/employees/${employee.id}`)}>
                     <Table.Td>
                       <Group gap="sm" wrap="nowrap">
                         <Avatar
@@ -260,9 +262,16 @@ export function DirectoryPage(): React.JSX.Element {
                         />
                         <div style={{ minWidth: 0 }}>
                           <Group gap={6} wrap="nowrap">
-                            <Text size="sm" fw={500} truncate>
+                            <Anchor
+                              component={Link}
+                              to={`/employees/${employee.id}`}
+                              size="sm"
+                              fw={600}
+                              c="var(--mantine-color-text)"
+                              truncate
+                            >
                               {employee.firstName} {employee.lastName}
-                            </Text>
+                            </Anchor>
                             {employee.status === "LEAVING" && (
                               <Badge size="xs" color="gray">
                                 Leaving
@@ -276,14 +285,9 @@ export function DirectoryPage(): React.JSX.Element {
                       </Group>
                     </Table.Td>
                     <Table.Td>
-                      <Anchor
-                        component={Link}
-                        to={`/employees/${employee.id}`}
-                        size="sm"
-                        ff="monospace"
-                      >
+                      <Text size="sm" ff="monospace" c="dimmed">
                         {employee.employeeCode}
-                      </Anchor>
+                      </Text>
                     </Table.Td>
                     <Table.Td>{employee.jobTitle}</Table.Td>
                     <Table.Td>{employee.country.name}</Table.Td>
