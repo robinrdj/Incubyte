@@ -1,5 +1,6 @@
 import {
   Alert,
+  Box,
   Badge,
   Card,
   Group,
@@ -13,6 +14,7 @@ import {
 import { memo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext.js";
 import { ExportCsvButton } from "../ExportCsvButton.js";
+import { BandSplitBar } from "./BandSplitBar.js";
 import { BandViolationsTable } from "./BandViolationsTable.js";
 import { useAsync } from "../../hooks/useAsync.js";
 import { errorMessage } from "../../lib/errors.js";
@@ -102,6 +104,15 @@ export const BandViolationsCard = memo(function BandViolationsCard({
 
       {report !== undefined && (
         <>
+          {report.evaluated > 0 && (
+            <Box mt="md">
+              <BandSplitBar
+                below={report.below}
+                within={report.evaluated - report.below - report.above}
+                above={report.above}
+              />
+            </Box>
+          )}
           <Group gap="xs" mt="md" mb="md">
             <Badge color="gray">{report.evaluated.toLocaleString("en-US")} evaluated</Badge>
             <Badge color="orange">{outside.toLocaleString("en-US")} outside</Badge>

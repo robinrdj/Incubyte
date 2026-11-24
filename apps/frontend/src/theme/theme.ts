@@ -98,11 +98,17 @@ export const cssVariablesResolver: CSSVariablesResolver = (current) => ({
     "--app-page-bg": "#f6f7fb",
     "--app-sidebar-bg": "#fbfbfe",
     "--app-table-head-bg": current.colors.gray[0],
+    "--band-below": "#2a78d6",
+    "--band-within": "#8a8983",
+    "--band-above": "#e05650",
     "--mantine-color-default-border": current.colors.gray[2],
   },
   dark: {
     "--app-page-bg": current.colors.dark[8],
     "--app-sidebar-bg": current.colors.dark[7],
     "--app-table-head-bg": current.colors.dark[6],
+    "--band-below": "#3987e5",
+    "--band-within": "#8f8e87",
+    "--band-above": "#e05650",
   },
 });

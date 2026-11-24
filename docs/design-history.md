@@ -22,6 +22,17 @@ A record of each visual design, so an earlier one can be restored on request. Th
 - **Typography (2026-11-25).** Plus Jakarta Sans was replaced with **Sora** for headings and the brand name, and **Geist** for body text, tables, and forms. Both are bundled with Fontsource. Geist keeps tabular figures in tables.
 - The palette and shadows are unchanged from version 2.
 
+### Experimental: analytics charts (2026-11-25)
+
+Added in a separate commit so they can be reverted alone. Built with the dataviz method: the form was chosen first, then the colours were validated with its palette script.
+
+- **Pay band split** (Pay bands tab): a tall segmented bar of Below, Within, and Above band, chosen over a pie because the reader compares shares. The share is printed inside each block, with a legend and an accessible summary.
+  - Diverging colours: blue `#2a78d6` (below), neutral grey `#8a8983` (within), and red `#e05650` (above). In dark mode the blue is `#3987e5` and the grey `#8f8e87`.
+  - Light mode passes every check except grey chroma, which is intended for the neutral midpoint. Dark mode red against grey is ΔE 7.9, which is allowed with the printed labels, the 2 px gaps, and the legend.
+  - The band badges use the same colours (they were red and orange), so "below band" looks the same everywhere.
+- **Headcount by group** (Pay by group tab): ranked horizontal bars in the brand hue, largest first, with each group's count and share.
+- **Pay range by group** (Pay by group tab): a line from lowest to highest pay per group, with a dot at the median, on one shared scale.
+
 ## Version 2: Indigo-violet with Plus Jakarta Sans (2026-11-24)
 
 **Code:** commit `0ec7a70`, folder `apps/web/src` (before the rename to `apps/frontend`). The design files are `theme.ts`, `styles.css`, `layout/AppLayout.tsx`, `pages/LoginPage.tsx`, `components/PageHeader.tsx`, and `components/MedianBars.tsx`.

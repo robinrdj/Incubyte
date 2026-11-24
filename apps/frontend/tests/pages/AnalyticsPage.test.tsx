@@ -419,3 +419,35 @@ describe("explaining the numbers", () => {
     expect(await screen.findByText("Everyone evaluated is within their band.")).toBeVisible();
   });
 });
+
+describe("charts", () => {
+  it("summarises the pay band split for screen readers", async () => {
+    installFakeApi([
+      { method: "GET", path: "/api/analytics/compensation", body: COMPENSATION },
+      {
+        method: "GET",
+        path: "/api/analytics/band-violations",
+        body: { ...bandReport(), evaluated: 100, below: 20, above: 10, total: 30 },
+      },
+    ]);
+    renderAt("/analytics", <AnalyticsPage />);
+    await openPayBands();
+
+    expect(
+      await screen.findByRole("img", { name: /Pay band position of 100 employees/ }),
+    ).toHaveAccessibleName(
+      "Pay band position of 100 employees. Below band: 20 (20%), Within band: 70 (70%), Above band: 10 (10%).",
+    );
+  });
+
+  it("ranks headcount by group, largest first", async () => {
+    renderAt("/analytics", <AnalyticsPage />);
+
+    const list = await screen.findByRole("list", { name: "Headcount by group" });
+    const rows = within(list)
+      .getAllByRole("listitem")
+      .map((row) => row.textContent);
+    expect(rows[0]).toContain("Germany");
+    expect(rows[1]).toContain("India");
+  });
+});

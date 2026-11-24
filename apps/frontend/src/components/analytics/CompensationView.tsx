@@ -9,7 +9,9 @@ import {
 } from "@tabler/icons-react";
 import { useAuth } from "../../auth/AuthContext.js";
 import { ExportCsvButton } from "../ExportCsvButton.js";
+import { HeadcountBars } from "./HeadcountBars.js";
 import { MedianBars } from "./MedianBars.js";
+import { PayRangeChart } from "./PayRangeChart.js";
 import { formatUsd } from "../../lib/format.js";
 import { GROUP_OPTIONS } from "./group-options.js";
 import { StatCard } from "./StatCard.js";
@@ -118,6 +120,36 @@ export function CompensationView({
           </Table>
         </Table.ScrollContainer>
       </Card>
+
+      <SimpleGrid cols={{ base: 1, lg: 2 }}>
+        <Card>
+          <Title order={4}>Headcount by {groupName.toLowerCase()}</Title>
+          <Text size="sm" c="dimmed" mb="md">
+            Largest first, with each group&apos;s share of the active workforce.
+          </Text>
+          <HeadcountBars
+            groups={report.groups.map((group) => ({
+              label: group.label,
+              headcount: group.summary.headcount,
+            }))}
+            total={report.overall.headcount}
+          />
+        </Card>
+        <Card>
+          <Title order={4}>Pay range by {groupName.toLowerCase()}</Title>
+          <Text size="sm" c="dimmed" mb="md">
+            Lowest to highest salary in USD; the dot is the median.
+          </Text>
+          <PayRangeChart
+            ranges={report.groups.map((group) => ({
+              label: group.label,
+              minUsd: group.summary.minUsd,
+              medianUsd: group.summary.medianUsd,
+              maxUsd: group.summary.maxUsd,
+            }))}
+          />
+        </Card>
+      </SimpleGrid>
     </Stack>
   );
 }
