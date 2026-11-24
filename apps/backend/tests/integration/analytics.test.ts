@@ -420,6 +420,56 @@ describe("narrowing and paging the band report", () => {
   });
 });
 
+describe("analytics as CSV", () => {
+  beforeEach(seedFixture);
+
+  function getCsv(path: string) {
+    return request(app).get(path).set("Authorization", AUTH_HEADER);
+  }
+
+  it("downloads the grouped compensation table", async () => {
+    const response = await getCsv(
+      "/api/analytics/compensation.csv?groupBy=country&asOf=2026-11-23",
+    );
+    const lines = response.text.trim().split("\r\n");
+
+    expect(response.status).toBe(200);
+    expect(response.headers["content-type"]).toContain("text/csv");
+    expect(response.headers["content-disposition"]).toContain(
+      "compensation-by-country-2026-11-23.csv",
+    );
+    expect(lines[0]).toBe("country,headcount,medianUsd,averageUsd,minUsd,maxUsd");
+    expect(lines[1]?.startsWith("All active employees,")).toBe(true);
+  });
+
+  it("downloads every person outside their band, not just one page", async () => {
+    const response = await getCsv("/api/analytics/band-violations.csv?asOf=2026-11-23&pageSize=1");
+    const codes = response.text
+      .trim()
+      .split("\r\n")
+      .slice(1)
+      .map((line) => line.split(",")[0]);
+
+    expect(response.status).toBe(200);
+    expect(codes).toEqual(["EMP-000002", "EMP-000005"]);
+  });
+
+  it("keeps the position filter", async () => {
+    const response = await getCsv(
+      "/api/analytics/band-violations.csv?asOf=2026-11-23&position=BELOW",
+    );
+
+    expect(response.text).toContain("EMP-000005");
+    expect(response.text).not.toContain("EMP-000002");
+    expect(response.headers["content-disposition"]).toContain("pay-band-below-2026-11-23.csv");
+  });
+
+  it("requires a signed-in user", async () => {
+    const response = await request(app).get("/api/analytics/compensation.csv");
+    expect(response.status).toBe(401);
+  });
+});
+
 describe("analytics error handling", () => {
   it("fails clearly, naming the currency, when an FX rate is missing", async () => {
     await seedFixture();

@@ -1,6 +1,13 @@
-import { Router } from "express";
+import { Router, type Response } from "express";
+import { bandViolationsToCsv, compensationToCsv } from "../domain/analytics-csv.js";
 import type { AnalyticsService } from "../services/analytics-service.js";
 import { bandViolationsQuerySchema, compensationQuerySchema } from "./schemas.js";
+
+function sendCsv(res: Response, filename: string, csv: string): void {
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send(csv);
+}
 
 /** Read-only compensation analytics. Every figure is in USD and uses the active headcount. */
 export function createAnalyticsRouter(service: AnalyticsService): Router {
@@ -11,9 +18,26 @@ export function createAnalyticsRouter(service: AnalyticsService): Router {
     res.json(await service.compensation(query.groupBy, query.asOf));
   });
 
+  router.get("/analytics/compensation.csv", async (req, res) => {
+    const query = compensationQuerySchema.parse(req.query);
+    const report = await service.compensation(query.groupBy, query.asOf);
+    sendCsv(res, `compensation-by-${report.groupBy}-${report.asOf}.csv`, compensationToCsv(report));
+  });
+
   router.get("/analytics/band-violations", async (req, res) => {
     const query = bandViolationsQuerySchema.parse(req.query);
     res.json(await service.bandViolations(query));
+  });
+
+  /** Every matching row, not one page: the export is for working with the full list elsewhere. */
+  router.get("/analytics/band-violations.csv", async (req, res) => {
+    const { asOf, position } = bandViolationsQuerySchema.parse(req.query);
+    const report = await service.bandViolations({
+      ...(asOf === undefined ? {} : { asOf }),
+      ...(position === undefined ? {} : { position }),
+    });
+    const scope = position === undefined ? "outside" : position.toLowerCase();
+    sendCsv(res, `pay-band-${scope}-${report.asOf}.csv`, bandViolationsToCsv(report));
   });
 
   return router;
