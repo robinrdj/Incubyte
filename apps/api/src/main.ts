@@ -15,7 +15,7 @@ const app = createApp({
   analytics: new AnalyticsService(prisma, clock),
   bulk: new BulkExchangeService(prisma, clock),
   settings: new SettingsService(prisma),
-  credentials: { user: config.BASIC_AUTH_USER, password: config.BASIC_AUTH_PASSWORD },
+  credentials: { user: config.HR_EMAIL, password: config.HR_PASSWORD },
 });
 
 const server = app.listen(config.PORT, () => {

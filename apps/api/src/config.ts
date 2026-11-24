@@ -2,8 +2,9 @@ import { z } from "zod";
 
 const configSchema = z.object({
   DATABASE_URL: z.string().min(1, "is required"),
-  BASIC_AUTH_USER: z.string().min(1, "is required"),
-  BASIC_AUTH_PASSWORD: z.string().min(12, "must be at least 12 characters"),
+  /** The HR Manager's sign-in email. Compared in lower case, as the web app sends it. */
+  HR_EMAIL: z.string().trim().toLowerCase().pipe(z.email("must be an email address")),
+  HR_PASSWORD: z.string().min(12, "must be at least 12 characters"),
   PORT: z.coerce.number().int().positive().default(4000),
 });
 

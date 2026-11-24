@@ -4,7 +4,7 @@ import type { PrismaClient } from "../src/generated/prisma/client.js";
 /** Fixed "today" so date validation is deterministic. */
 export const FIXED_NOW = new Date("2026-11-23T12:00:00Z");
 
-export const TEST_CREDENTIALS = { user: "hr", password: "test-password-12345" };
+export const TEST_CREDENTIALS = { user: "hr.manager@acme.test", password: "test-password-12345" };
 
 export const AUTH_HEADER = `Basic ${Buffer.from(
   `${TEST_CREDENTIALS.user}:${TEST_CREDENTIALS.password}`,
