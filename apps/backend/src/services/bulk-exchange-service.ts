@@ -18,6 +18,7 @@ import { formatMoney, type MinorUnits } from "../domain/money.js";
 import { HttpError } from "../http/errors.js";
 import { employeeWhere, type EmployeeFilters } from "./employee-filters.js";
 import type { ImportRowErrorDto, ImportReportDto } from "@salary/shared";
+import { latestToday } from "../domain/dates.js";
 
 /** Database lookups are chunked so a 10,000-row import never sends one enormous IN list. */
 const CHUNK_SIZE = 1000;
@@ -159,7 +160,7 @@ export class BulkExchangeService {
       countryCodes: new Set(countries.map((c) => c.code)),
       departmentNames: new Set(departments.map((d) => d.name)),
       levelCodes: new Set(levels.map((l) => l.code)),
-      today: toDateOnly(this.clock()),
+      today: latestToday(this.clock()),
     };
   }
 

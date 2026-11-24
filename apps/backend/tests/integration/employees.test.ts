@@ -371,16 +371,68 @@ describe("salary history (append-only)", () => {
     ]);
   });
 
-  it("rejects a change dated on or before the current salary date (no backdating)", async () => {
+  it("rejects a change dated before the current salary (no backdating)", async () => {
     const created = await createEmployee();
 
     const response = await request(app)
       .post(`/api/employees/${created.id}/salary-changes`)
       .set("Authorization", AUTH_HEADER)
-      .send({ amount: "80000.00", currency: "EUR", effectiveFrom: "2024-01-15" });
+      .send({ amount: "80000.00", currency: "EUR", effectiveFrom: "2024-01-01" });
 
     expect(response.status).toBe(422);
-    expect(response.body.error.message).toContain("must be after");
+    expect(response.body.error.message).toContain("on or after");
+  });
+
+  it("corrects the current salary when the change has the same date", async () => {
+    const created = await createEmployee();
+
+    const response = await request(app)
+      .post(`/api/employees/${created.id}/salary-changes`)
+      .set("Authorization", AUTH_HEADER)
+      .send({ amount: "92000.00", currency: "EUR", effectiveFrom: "2024-01-15" });
+
+    expect(response.status).toBe(201);
+    const history = await request(app)
+      .get(`/api/employees/${created.id}/salary-history`)
+      .set("Authorization", AUTH_HEADER);
+    expect(history.body.items).toEqual([
+      { amount: "92000.00", currency: "EUR", effectiveFrom: "2024-01-15" },
+    ]);
+    const audit = await prisma.auditLog.findFirstOrThrow({
+      where: { employeeId: created.id, action: "SALARY_CHANGED" },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(audit.before).toMatchObject({ amount: "90000.00" });
+    expect(audit.after).toMatchObject({ amount: "92000.00" });
+  });
+
+  it("changes nothing when the same date and amount are saved again", async () => {
+    const created = await createEmployee();
+    const eventsBefore = await prisma.auditLog.count({ where: { employeeId: created.id } });
+
+    await request(app)
+      .post(`/api/employees/${created.id}/salary-changes`)
+      .set("Authorization", AUTH_HEADER)
+      .send({ amount: "90000.00", currency: "EUR", effectiveFrom: "2024-01-15" });
+
+    expect(await prisma.auditLog.count({ where: { employeeId: created.id } })).toBe(eventsBefore);
+  });
+
+  it("accepts a date that is already today in the furthest-ahead time zone", async () => {
+    // The test clock is 23 Nov 12:00 UTC, when it is already 24 Nov in UTC+14.
+    const created = await createEmployee();
+
+    const today = await request(app)
+      .post(`/api/employees/${created.id}/salary-changes`)
+      .set("Authorization", AUTH_HEADER)
+      .send({ amount: "95000.00", currency: "EUR", effectiveFrom: "2026-11-24" });
+    const tomorrow = await request(app)
+      .post(`/api/employees/${created.id}/salary-changes`)
+      .set("Authorization", AUTH_HEADER)
+      .send({ amount: "96000.00", currency: "EUR", effectiveFrom: "2026-11-25" });
+
+    expect(today.status).toBe(201);
+    expect(tomorrow.status).toBe(422);
   });
 
   it("rejects a future-dated change", async () => {

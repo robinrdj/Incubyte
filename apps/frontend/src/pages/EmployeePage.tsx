@@ -240,7 +240,8 @@ export function EmployeePage(): React.JSX.Element {
           Record a salary change
         </Title>
         <Text size="sm" c="dimmed" mb="md">
-          Past salary records are never edited. A change must take effect after the current salary.
+          A later date adds a new salary to the history. The current salary&apos;s own date corrects
+          it, and the change is kept in the audit trail. Earlier dates can&apos;t be changed.
         </Text>
         <SalaryChangeForm
           currency={latest?.currency ?? countryCurrency}

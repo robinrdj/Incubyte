@@ -222,7 +222,25 @@ describe("recording a salary change", () => {
     });
   });
 
-  it("refuses a salary that does not take effect after the current one, without sending it", async () => {
+  it("refuses a salary dated before the current one, without sending it", async () => {
+    recorded = standardRoutes();
+    const user = userEvent.setup();
+    renderProfile();
+    await screen.findByRole("heading", { name: "Ada Lovelace", level: 2 });
+
+    await user.type(screen.getByLabelText(/^new salary/i), "100000.00");
+    fireEvent.change(screen.getByLabelText(/^effective from/i), {
+      target: { value: "2025-01-14" },
+    });
+    await user.click(screen.getByRole("button", { name: "Record salary change" }));
+
+    expect(
+      await screen.findByText("Must be on or after the current salary date (2025-01-15)"),
+    ).toBeInTheDocument();
+    expect(recorded.some((r) => r.method === "POST")).toBe(false);
+  });
+
+  it("sends a correction dated on the current salary date", async () => {
     recorded = standardRoutes();
     const user = userEvent.setup();
     renderProfile();
@@ -234,10 +252,11 @@ describe("recording a salary change", () => {
     });
     await user.click(screen.getByRole("button", { name: "Record salary change" }));
 
-    expect(
-      await screen.findByText("Must be after the current salary date (2025-01-15)"),
-    ).toBeInTheDocument();
-    expect(recorded.some((r) => r.method === "POST")).toBe(false);
+    await waitFor(() => {
+      expect(recorded.find((r) => r.method === "POST")?.body).toMatchObject({
+        effectiveFrom: "2025-01-15",
+      });
+    });
   });
 
   it("shows the server's message when the change is rejected", async () => {

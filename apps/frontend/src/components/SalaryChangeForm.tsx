@@ -11,7 +11,7 @@ export interface SalaryChangeValues {
 interface SalaryChangeFormProps {
   /** Currency to start from: the employee's current salary currency. */
   currency: string;
-  /** The current salary's date. A change must be after it, because history is append-only. */
+  /** The current salary's date. A change on this date corrects it; earlier dates are refused. */
   currentEffectiveFrom: string | undefined;
   onSave: (values: SalaryChangeValues) => Promise<void>;
 }
@@ -19,7 +19,6 @@ interface SalaryChangeFormProps {
 const AMOUNT = /^\d+(\.\d{1,2})?$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Records a new salary. Past records are never edited, so the new date must be later than the current one. */
 export function SalaryChangeForm({
   currency,
   currentEffectiveFrom,
@@ -40,8 +39,8 @@ export function SalaryChangeForm({
         /^[A-Z]{3}$/.test(value.trim().toUpperCase()) ? null : "Use a three-letter code",
       effectiveFrom: (value) => {
         if (!DATE.test(value)) return "Enter the date this salary takes effect";
-        if (currentEffectiveFrom !== undefined && value <= currentEffectiveFrom) {
-          return `Must be after the current salary date (${currentEffectiveFrom})`;
+        if (currentEffectiveFrom !== undefined && value < currentEffectiveFrom) {
+          return `Must be on or after the current salary date (${currentEffectiveFrom})`;
         }
         return null;
       },

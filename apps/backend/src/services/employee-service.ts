@@ -1,4 +1,5 @@
 import { Prisma, type PrismaClient } from "../generated/prisma/client.js";
+import { latestToday } from "../domain/dates.js";
 import { formatMoney, parseMoney } from "../domain/money.js";
 import { conflict, notFound, unprocessable } from "../http/errors.js";
 import { employeeWhere } from "./employee-filters.js";
@@ -90,7 +91,7 @@ export class EmployeeService {
   ) {}
 
   private today(): string {
-    return toDateOnly(this.clock());
+    return latestToday(this.clock());
   }
 
   async list(query: ListEmployeesQuery): Promise<Page<EmployeeDto>> {
@@ -239,8 +240,10 @@ export class EmployeeService {
   }
 
   /**
-   * Appends a salary change. Past records are never modified: the new record must be dated
-   * strictly after the current one, so history can only grow.
+   * Records a salary. A later date adds a record, so the history grows. The current record's own
+   * date corrects that record instead, for example when a salary was entered wrongly; the audit
+   * trail keeps both values. Earlier dates are refused: the past is only changed through its
+   * latest record.
    */
   async addSalaryChange(id: string, input: SalaryInput, actor: string): Promise<SalaryDto> {
     return this.db.$transaction(async (tx) => {
@@ -248,21 +251,36 @@ export class EmployeeService {
       this.assertNotFuture(input.effectiveFrom, "salary effectiveFrom");
 
       const current = employee.salaryRecords[0];
-      if (current && input.effectiveFrom <= toDateOnly(current.effectiveFrom)) {
+      const currentDate = current ? toDateOnly(current.effectiveFrom) : null;
+      if (currentDate !== null && input.effectiveFrom < currentDate) {
         throw unprocessable(
-          `salary effectiveFrom must be after the current salary's date (${toDateOnly(current.effectiveFrom)})`,
+          `salary effectiveFrom must be on or after the current salary's date (${currentDate})`,
         );
       }
 
-      const record = await tx.salaryRecord.create({
-        data: {
-          employeeId: id,
-          amount: toDecimal(input.amount),
-          currency: input.currency,
-          effectiveFrom: fromDateOnly(input.effectiveFrom),
-          createdBy: actor,
-        },
-      });
+      const correcting = current !== undefined && input.effectiveFrom === currentDate;
+      if (
+        correcting &&
+        current.amount.equals(toDecimal(input.amount)) &&
+        current.currency === input.currency
+      ) {
+        return toSalaryDto(current);
+      }
+
+      const record = correcting
+        ? await tx.salaryRecord.update({
+            where: { id: current.id },
+            data: { amount: toDecimal(input.amount), currency: input.currency },
+          })
+        : await tx.salaryRecord.create({
+            data: {
+              employeeId: id,
+              amount: toDecimal(input.amount),
+              currency: input.currency,
+              effectiveFrom: fromDateOnly(input.effectiveFrom),
+              createdBy: actor,
+            },
+          });
 
       await tx.auditLog.create({
         data: {
