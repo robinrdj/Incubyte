@@ -14,6 +14,7 @@ import {
   Title,
 } from "@mantine/core";
 import type { FxRateDto, PayBandDto, ReferenceDataDto } from "@salary/shared";
+import { IconPencil, IconPlus } from "@tabler/icons-react";
 import { useState } from "react";
 import { useAuth } from "../auth/AuthContext.js";
 import { useAsync } from "../hooks/useAsync.js";
@@ -127,7 +128,7 @@ function FxRatesPanel(): React.JSX.Element {
 
   return (
     <Stack>
-      <Card withBorder radius="md" padding="lg">
+      <Card>
         <Title order={4}>Latest rates</Title>
         <Text size="sm" c="dimmed" mb="md">
           The value of one unit of each currency in {reportingCurrency}. The analytics use the
@@ -186,7 +187,7 @@ function FxRatesPanel(): React.JSX.Element {
         </Table.ScrollContainer>
       </Card>
 
-      <Card withBorder radius="md" padding="lg">
+      <Card>
         <Title order={4}>Add or correct a rate</Title>
         <Text size="sm" c="dimmed" mb="md">
           A new date adds a rate from that day on. Saving a date that already has a rate replaces
@@ -295,7 +296,7 @@ function PayBandsPanel(): React.JSX.Element {
   );
 
   return (
-    <Card withBorder radius="md" padding="lg">
+    <Card>
       <Group justify="space-between" align="flex-end" wrap="wrap" mb="md">
         <div>
           <Title order={4}>Pay bands</Title>
@@ -313,7 +314,7 @@ function PayBandsPanel(): React.JSX.Element {
           w={220}
         />
       </Group>
-      <Table.ScrollContainer minWidth={640}>
+      <Table.ScrollContainer minWidth={560}>
         <Table aria-label={`Pay bands in ${country.name}`}>
           <Table.Thead>
             <Table.Tr>
@@ -359,14 +360,21 @@ function BandRow({
 }): React.JSX.Element {
   const { api } = useAuth();
   // What is stored now: the band as loaded, then whatever this row last saved.
-  const [stored, setStored] = useState({ min: band?.minAmount ?? "", max: band?.maxAmount ?? "" });
-  const [min, setMin] = useState(band?.minAmount ?? "");
-  const [max, setMax] = useState(band?.maxAmount ?? "");
+  const [stored, setStored] = useState(band ? { min: band.minAmount, max: band.maxAmount } : null);
+  const [editing, setEditing] = useState(false);
+  const [min, setMin] = useState("");
+  const [max, setMax] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [savedNote, setSavedNote] = useState(false);
 
-  const changed = min !== stored.min || max !== stored.max;
+  function startEditing(): void {
+    setMin(stored?.min ?? "");
+    setMax(stored?.max ?? "");
+    setError(null);
+    setSavedNote(false);
+    setEditing(true);
+  }
 
   async function save(): Promise<void> {
     const minimum = min.trim();
@@ -384,7 +392,14 @@ function BandRow({
       return;
     }
     setError(null);
-    setSavedNote(false);
+    if (
+      stored !== null &&
+      Number(minimum) === Number(stored.min) &&
+      Number(maximum) === Number(stored.max)
+    ) {
+      setEditing(false);
+      return;
+    }
     setBusy(true);
     try {
       const saved = await api.savePayBand(countryCode, levelCode, {
@@ -392,8 +407,7 @@ function BandRow({
         maxAmount: maximum,
       });
       setStored({ min: saved.minAmount, max: saved.maxAmount });
-      setMin(saved.minAmount);
-      setMax(saved.maxAmount);
+      setEditing(false);
       setSavedNote(true);
       onSaved();
     } catch (caught) {
@@ -406,52 +420,109 @@ function BandRow({
   return (
     <Table.Tr>
       <Table.Td>
-        <Text fw={500}>{levelCode}</Text>
-        {band === undefined && (
-          <Badge color="gray" variant="light" size="sm">
-            Not set
-          </Badge>
-        )}
+        <Text fw={600}>{levelCode}</Text>
       </Table.Td>
-      <Table.Td>
-        <TextInput
-          aria-label={`${levelCode} minimum`}
-          value={min}
-          onChange={(event) => {
-            setMin(event.currentTarget.value);
-          }}
-          inputMode="decimal"
-          description={band ? formatMoney(band.minAmount, currency) : undefined}
-        />
-      </Table.Td>
-      <Table.Td>
-        <TextInput
-          aria-label={`${levelCode} maximum`}
-          value={max}
-          onChange={(event) => {
-            setMax(event.currentTarget.value);
-          }}
-          inputMode="decimal"
-          description={band ? formatMoney(band.maxAmount, currency) : undefined}
-          error={error}
-        />
-      </Table.Td>
-      <Table.Td>
-        <Button
-          size="xs"
-          disabled={!changed}
-          loading={busy}
-          onClick={() => void save()}
-          aria-label={`Save ${levelCode} band`}
-        >
-          Save
-        </Button>
-        {savedNote && !changed && (
-          <Text size="xs" c="teal" role="status">
-            Saved
-          </Text>
-        )}
-      </Table.Td>
+      {editing ? (
+        <>
+          <Table.Td>
+            <TextInput
+              aria-label={`${levelCode} minimum`}
+              value={min}
+              onChange={(event) => {
+                setMin(event.currentTarget.value);
+              }}
+              inputMode="decimal"
+              rightSection={
+                <Text size="xs" c="dimmed">
+                  {currency}
+                </Text>
+              }
+              rightSectionWidth={44}
+              data-autofocus
+            />
+          </Table.Td>
+          <Table.Td>
+            <TextInput
+              aria-label={`${levelCode} maximum`}
+              value={max}
+              onChange={(event) => {
+                setMax(event.currentTarget.value);
+              }}
+              inputMode="decimal"
+              rightSection={
+                <Text size="xs" c="dimmed">
+                  {currency}
+                </Text>
+              }
+              rightSectionWidth={44}
+              error={error}
+            />
+          </Table.Td>
+          <Table.Td>
+            <Group gap="xs" wrap="nowrap" justify="flex-end">
+              <Button
+                size="xs"
+                loading={busy}
+                onClick={() => void save()}
+                aria-label={`Save ${levelCode} band`}
+              >
+                Save
+              </Button>
+              <Button
+                size="xs"
+                variant="default"
+                disabled={busy}
+                onClick={() => {
+                  setEditing(false);
+                  setError(null);
+                }}
+                aria-label={`Cancel editing ${levelCode} band`}
+              >
+                Cancel
+              </Button>
+            </Group>
+          </Table.Td>
+        </>
+      ) : (
+        <>
+          <Table.Td>
+            {stored ? (
+              formatMoney(stored.min, currency)
+            ) : (
+              <Text c="dimmed" size="sm">
+                —
+              </Text>
+            )}
+          </Table.Td>
+          <Table.Td>
+            {stored ? (
+              formatMoney(stored.max, currency)
+            ) : (
+              <Badge color="gray" size="sm">
+                Not set
+              </Badge>
+            )}
+          </Table.Td>
+          <Table.Td>
+            <Group gap="xs" wrap="nowrap" justify="flex-end">
+              {savedNote && (
+                <Text size="xs" c="teal" role="status">
+                  Saved
+                </Text>
+              )}
+              <Button
+                size="xs"
+                variant="light"
+                leftSection={stored ? <IconPencil size={14} /> : <IconPlus size={14} />}
+                onClick={startEditing}
+                aria-label={`${stored ? "Edit" : "Add"} ${levelCode} band`}
+              >
+                {stored ? "Edit" : "Add band"}
+              </Button>
+            </Group>
+          </Table.Td>
+        </>
+      )}
     </Table.Tr>
   );
 }
