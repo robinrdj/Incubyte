@@ -696,3 +696,17 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 **Verification:** 91 web tests pass. One test caught the email shown twice (header and navigation), so the header copy was removed. `npm run check` passes, and the production build bundles the font.
 
 **Not verified:** in a real browser.
+
+---
+
+## 2026-11-24 — Stage 9g: Clickable rows
+
+**User request:** "Individual records are not clickable. They should open a separate page, the same page you show once we add a new employee."
+
+**Design decisions:**
+
+- **The whole row opens the profile.** Clicking anywhere in a directory row, or in an out-of-band row on Analytics, opens `/employees/:id`. That is the same profile page the app opens after creating an employee.
+- **One shared hook, `useRowLink`.** It leaves clicks on links, buttons, and inputs inside the row alone. Ctrl- or Cmd-click opens a new tab, as a link would. A click that ends a text selection does not navigate, so names and emails can still be copied.
+- **Keyboard access.** A table row cannot be a link without breaking table semantics, so each row keeps one real link: the employee's name. Keyboard and screen-reader users reach the profile with Tab and Enter, and the row click gives mouse users a larger target. The employee code is now plain text, so each row has a single link.
+
+**Verification:** 4 new tests. They check that clicking a cell opens the profile, that Enter on the name link opens it, that Ctrl-click opens a new tab without leaving the list, and that an analytics row opens its profile. 95 web tests in total. `npm run check` passes.
