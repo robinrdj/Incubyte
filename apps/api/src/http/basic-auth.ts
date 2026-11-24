@@ -23,7 +23,11 @@ export const ACTOR_LOCAL = "actor";
 export function requireBasicAuth(expected: Credentials): RequestHandler {
   return (req, res, next) => {
     const deny = (): void => {
-      res.set("WWW-Authenticate", 'Basic realm="salary-management"');
+      // The web app marks its requests, and a Basic challenge would make the browser show its own
+      // sign-in dialog over the app. Other clients, such as curl, still get the standard challenge.
+      if (req.get("X-Requested-With") !== "XMLHttpRequest") {
+        res.set("WWW-Authenticate", 'Basic realm="salary-management"');
+      }
       res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required" } });
     };
 

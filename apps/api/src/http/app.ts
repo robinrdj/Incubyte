@@ -1,3 +1,4 @@
+import cors from "cors";
 import express, { type Express } from "express";
 import { APP_NAME } from "@salary/shared";
 import { requireBasicAuth, type Credentials } from "./basic-auth.js";
@@ -17,6 +18,8 @@ export interface AppDependencies {
   readonly bulk: BulkExchangeService;
   readonly settings: SettingsService;
   readonly credentials: Credentials;
+  /** Browser origins allowed to call the API. Empty allows same-origin use only. */
+  readonly corsOrigins?: readonly string[];
 }
 
 /**
@@ -29,9 +32,25 @@ export function createApp({
   bulk,
   settings,
   credentials,
+  corsOrigins = [],
 }: AppDependencies): Express {
   const app = express();
   app.disable("x-powered-by");
+
+  // Before authentication, so the browser's preflight request (which carries no credentials) is
+  // answered. The token travels in the Authorization header, not a cookie, so credentials mode is
+  // not needed.
+  if (corsOrigins.length > 0) {
+    app.use(
+      cors({
+        origin: [...corsOrigins],
+        methods: ["GET", "POST", "PUT", "PATCH"],
+        allowedHeaders: ["Authorization", "Content-Type", "Accept", "X-Requested-With"],
+        maxAge: 600,
+      }),
+    );
+  }
+
   app.use(express.json({ limit: "100kb" }));
 
   app.get("/health", (_req, res) => {

@@ -16,6 +16,7 @@ const app = createApp({
   bulk: new BulkExchangeService(prisma, clock),
   settings: new SettingsService(prisma),
   credentials: { user: config.HR_EMAIL, password: config.HR_PASSWORD },
+  corsOrigins: config.CORS_ORIGIN,
 });
 
 const server = app.listen(config.PORT, () => {

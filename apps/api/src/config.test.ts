@@ -26,3 +26,24 @@ describe("loadConfig", () => {
     expect(() => loadConfig({ ...VALID, HR_PASSWORD: "short" })).toThrow(/HR_PASSWORD/);
   });
 });
+
+describe("CORS_ORIGIN", () => {
+  it("allows no other origins when unset, as in development through the proxy", () => {
+    expect(loadConfig(VALID).CORS_ORIGIN).toEqual([]);
+  });
+
+  it("reads a comma-separated list and drops trailing slashes", () => {
+    const config = loadConfig({
+      ...VALID,
+      CORS_ORIGIN: "https://salary.vercel.app/, https://preview.vercel.app",
+    });
+    expect(config.CORS_ORIGIN).toEqual(["https://salary.vercel.app", "https://preview.vercel.app"]);
+  });
+
+  it.each(["salary.vercel.app", "https://salary.vercel.app/employees", "*"])(
+    "refuses %s, which is not a bare web address",
+    (value) => {
+      expect(() => loadConfig({ ...VALID, CORS_ORIGIN: value })).toThrow(/CORS_ORIGIN/);
+    },
+  );
+});
