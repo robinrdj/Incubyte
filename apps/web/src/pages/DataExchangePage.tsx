@@ -13,6 +13,7 @@ import {
 import { EMPLOYEE_CSV_COLUMNS, type EmploymentStatus, type ImportReportDto } from "@salary/shared";
 import { useState } from "react";
 import { useAuth } from "../auth/AuthContext.js";
+import { PageHeader } from "../components/PageHeader.js";
 import { useAsync } from "../hooks/useAsync.js";
 import { downloadCsv } from "../lib/download.js";
 import { errorMessage } from "../lib/errors.js";
@@ -27,14 +28,11 @@ const STATUS_OPTIONS = [
 /** Export employees to CSV, and import a CSV with a check-first step and row-level errors. */
 export function DataExchangePage(): React.JSX.Element {
   return (
-    <Stack>
-      <div>
-        <Title order={2}>Import and export</Title>
-        <Text c="dimmed" size="sm">
-          The import and export use the same columns, so an exported file can be changed and
-          imported again.
-        </Text>
-      </div>
+    <Stack gap="lg">
+      <PageHeader
+        title="Import and export"
+        description="The import and export use the same columns, so an exported file can be changed and imported again."
+      />
       <ExportCard />
       <ImportCard />
     </Stack>

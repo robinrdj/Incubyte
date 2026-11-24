@@ -1,18 +1,22 @@
 import {
   Alert,
   Anchor,
+  Avatar,
+  Badge,
+  Box,
   Button,
+  Card,
   Group,
-  Loader,
   Pagination,
   Select,
   SimpleGrid,
+  Skeleton,
   Stack,
   Table,
   Text,
   TextInput,
-  Title,
 } from "@mantine/core";
+import { IconDownload, IconPlus, IconSearch, IconUserSearch } from "@tabler/icons-react";
 import { useDebouncedValue } from "@mantine/hooks";
 import type { EmployeeDto, EmploymentStatus } from "@salary/shared";
 import { useMemo, useState } from "react";
@@ -20,6 +24,7 @@ import { Link } from "react-router";
 import type { EmployeeListQuery } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.js";
 import { BandBadge } from "../components/BandBadge.js";
+import { PageHeader } from "../components/PageHeader.js";
 import { useAsync } from "../hooks/useAsync.js";
 import { downloadCsv } from "../lib/download.js";
 import { errorMessage } from "../lib/errors.js";
@@ -103,24 +108,34 @@ export function DirectoryPage(): React.JSX.Element {
     label: l.code,
   }));
 
+  const refreshing = directory.loading && directory.data !== undefined;
+
   return (
-    <Stack>
-      <Group justify="space-between" wrap="wrap">
-        <Title order={2}>Employees</Title>
-        <Group gap="sm">
-          <Button
-            variant="default"
-            onClick={() => void exportFiltered()}
-            loading={exporting}
-            disabled={total === 0}
-          >
-            Export CSV
-          </Button>
-          <Button component={Link} to="/employees/new">
-            Add employee
-          </Button>
-        </Group>
-      </Group>
+    <Stack gap="lg">
+      <PageHeader
+        title="Employees"
+        description={
+          directory.data === undefined
+            ? "Everyone on the payroll, with their current salary and pay band."
+            : `${total.toLocaleString("en-US")} ${total === 1 ? "person matches" : "people match"} these filters.`
+        }
+        actions={
+          <>
+            <Button
+              variant="default"
+              leftSection={<IconDownload size={16} />}
+              onClick={() => void exportFiltered()}
+              loading={exporting}
+              disabled={total === 0}
+            >
+              Export CSV
+            </Button>
+            <Button component={Link} to="/employees/new" leftSection={<IconPlus size={16} />}>
+              Add employee
+            </Button>
+          </>
+        }
+      />
 
       {exportError !== null && (
         <Alert color="red" role="alert" variant="light" title="The export failed">
@@ -128,125 +143,191 @@ export function DirectoryPage(): React.JSX.Element {
         </Alert>
       )}
 
-      <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }}>
-        <TextInput
-          label="Search"
-          placeholder="Name, email, or code"
-          value={search}
-          onChange={(event) => {
-            setSearch(event.currentTarget.value);
-            setPage(1);
-          }}
-        />
-        <Select
-          label="Country"
-          placeholder="All countries"
-          data={countryOptions}
-          value={countryCode}
-          onChange={(value) => {
-            setCountryCode(value);
-            setPage(1);
-          }}
-          clearable
-          searchable
-        />
-        <Select
-          label="Department"
-          placeholder="All departments"
-          data={departmentOptions}
-          value={departmentName}
-          onChange={(value) => {
-            setDepartmentName(value);
-            setPage(1);
-          }}
-          clearable
-        />
-        <Select
-          label="Level"
-          placeholder="All levels"
-          data={levelOptions}
-          value={levelCode}
-          onChange={(value) => {
-            setLevelCode(value);
-            setPage(1);
-          }}
-          clearable
-        />
-        <Select
-          label="Status"
-          data={STATUS_OPTIONS}
-          value={status}
-          onChange={(value) => {
-            setStatus(value ?? "");
-            setPage(1);
-          }}
-          allowDeselect={false}
-        />
-      </SimpleGrid>
+      <Card padding={0}>
+        <Box p="md" style={{ borderBottom: "1px solid var(--mantine-color-default-border)" }}>
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }}>
+            <TextInput
+              label="Search"
+              placeholder="Name, email, or code"
+              leftSection={<IconSearch size={16} />}
+              value={search}
+              onChange={(event) => {
+                setSearch(event.currentTarget.value);
+                setPage(1);
+              }}
+            />
+            <Select
+              label="Country"
+              placeholder="All countries"
+              data={countryOptions}
+              value={countryCode}
+              onChange={(value) => {
+                setCountryCode(value);
+                setPage(1);
+              }}
+              clearable
+              searchable
+            />
+            <Select
+              label="Department"
+              placeholder="All departments"
+              data={departmentOptions}
+              value={departmentName}
+              onChange={(value) => {
+                setDepartmentName(value);
+                setPage(1);
+              }}
+              clearable
+            />
+            <Select
+              label="Level"
+              placeholder="All levels"
+              data={levelOptions}
+              value={levelCode}
+              onChange={(value) => {
+                setLevelCode(value);
+                setPage(1);
+              }}
+              clearable
+            />
+            <Select
+              label="Status"
+              data={STATUS_OPTIONS}
+              value={status}
+              onChange={(value) => {
+                setStatus(value ?? "");
+                setPage(1);
+              }}
+              allowDeselect={false}
+            />
+          </SimpleGrid>
+        </Box>
 
-      {directory.error !== null && (
-        <Alert color="red" role="alert" variant="light">
-          The employees could not be loaded. Try again.
-        </Alert>
-      )}
+        {directory.error !== null && (
+          <Alert color="red" role="alert" variant="light" m="md">
+            The employees could not be loaded. Try again.
+          </Alert>
+        )}
 
-      {directory.loading && directory.data === undefined ? (
-        <Loader aria-label="Loading employees" />
-      ) : rows.length === 0 ? (
-        <Text c="dimmed">No employees match these filters.</Text>
-      ) : (
-        <Table.ScrollContainer minWidth={760}>
-          <Table striped highlightOnHover aria-label="Employees">
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Code</Table.Th>
-                <Table.Th>Name</Table.Th>
-                <Table.Th>Job title</Table.Th>
-                <Table.Th>Country</Table.Th>
-                <Table.Th>Department</Table.Th>
-                <Table.Th>Level</Table.Th>
-                <Table.Th>Current salary</Table.Th>
-                <Table.Th>Pay band</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {rows.map((employee) => (
-                <Table.Tr key={employee.id}>
-                  <Table.Td>
-                    <Anchor component={Link} to={`/employees/${employee.id}`}>
-                      {employee.employeeCode}
-                    </Anchor>
-                  </Table.Td>
-                  <Table.Td>
-                    {employee.firstName} {employee.lastName}
-                  </Table.Td>
-                  <Table.Td>{employee.jobTitle}</Table.Td>
-                  <Table.Td>{employee.country.name}</Table.Td>
-                  <Table.Td>{employee.department.name}</Table.Td>
-                  <Table.Td>{employee.level.code}</Table.Td>
-                  <Table.Td>
-                    {employee.currentSalary
-                      ? formatMoney(employee.currentSalary.amount, employee.currentSalary.currency)
-                      : "—"}
-                  </Table.Td>
-                  <Table.Td>
-                    <BandBadge position={bandByEmployee.get(employee.id)} />
-                  </Table.Td>
+        {directory.loading && directory.data === undefined ? (
+          <Stack gap="sm" p="md" aria-busy="true" aria-label="Loading employees">
+            {Array.from({ length: 8 }, (_, index) => (
+              <Group key={index} gap="sm" wrap="nowrap">
+                <Skeleton circle height={32} />
+                <Skeleton height={12} width="30%" radius="sm" />
+                <Skeleton height={12} width="20%" radius="sm" />
+                <Skeleton height={12} width="15%" radius="sm" />
+              </Group>
+            ))}
+          </Stack>
+        ) : rows.length === 0 ? (
+          <Stack align="center" gap={4} py={48}>
+            <IconUserSearch size={32} stroke={1.4} color="var(--mantine-color-dimmed)" />
+            <Text fw={500}>No employees match these filters.</Text>
+            <Text size="sm" c="dimmed">
+              Try a different search, or clear a filter.
+            </Text>
+          </Stack>
+        ) : (
+          <Table.ScrollContainer
+            minWidth={860}
+            aria-busy={refreshing}
+            style={{ opacity: refreshing ? 0.55 : 1, transition: "opacity 150ms ease" }}
+          >
+            <Table aria-label="Employees" horizontalSpacing="md">
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Employee</Table.Th>
+                  <Table.Th>Code</Table.Th>
+                  <Table.Th>Job title</Table.Th>
+                  <Table.Th>Country</Table.Th>
+                  <Table.Th>Department</Table.Th>
+                  <Table.Th>Level</Table.Th>
+                  <Table.Th ta="right">Current salary</Table.Th>
+                  <Table.Th>Pay band</Table.Th>
                 </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-      )}
+              </Table.Thead>
+              <Table.Tbody>
+                {rows.map((employee) => (
+                  <Table.Tr key={employee.id}>
+                    <Table.Td>
+                      <Group gap="sm" wrap="nowrap">
+                        <Avatar
+                          size={32}
+                          radius="xl"
+                          color="initials"
+                          name={`${employee.firstName} ${employee.lastName}`}
+                        />
+                        <div style={{ minWidth: 0 }}>
+                          <Group gap={6} wrap="nowrap">
+                            <Text size="sm" fw={500} truncate>
+                              {employee.firstName} {employee.lastName}
+                            </Text>
+                            {employee.status === "LEAVING" && (
+                              <Badge size="xs" color="gray">
+                                Leaving
+                              </Badge>
+                            )}
+                          </Group>
+                          <Text size="xs" c="dimmed" truncate>
+                            {employee.email}
+                          </Text>
+                        </div>
+                      </Group>
+                    </Table.Td>
+                    <Table.Td>
+                      <Anchor
+                        component={Link}
+                        to={`/employees/${employee.id}`}
+                        size="sm"
+                        ff="monospace"
+                      >
+                        {employee.employeeCode}
+                      </Anchor>
+                    </Table.Td>
+                    <Table.Td>{employee.jobTitle}</Table.Td>
+                    <Table.Td>{employee.country.name}</Table.Td>
+                    <Table.Td>{employee.department.name}</Table.Td>
+                    <Table.Td>
+                      <Badge color="indigo" variant="outline" size="sm">
+                        {employee.level.code}
+                      </Badge>
+                    </Table.Td>
+                    <Table.Td ta="right" fw={500}>
+                      {employee.currentSalary
+                        ? formatMoney(
+                            employee.currentSalary.amount,
+                            employee.currentSalary.currency,
+                          )
+                        : "—"}
+                    </Table.Td>
+                    <Table.Td>
+                      <BandBadge position={bandByEmployee.get(employee.id)} />
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+        )}
 
-      {total > 0 && (
-        <Group justify="space-between" wrap="wrap">
-          <Text size="sm" c="dimmed">
-            Showing {first}–{last} of {total}
-          </Text>
-          {totalPages > 1 && <Pagination total={totalPages} value={page} onChange={setPage} />}
-        </Group>
-      )}
+        {total > 0 && (
+          <Group
+            justify="space-between"
+            wrap="wrap"
+            p="md"
+            style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}
+          >
+            <Text size="sm" c="dimmed">
+              Showing {first.toLocaleString("en-US")}–{last.toLocaleString("en-US")} of{" "}
+              {total.toLocaleString("en-US")}
+            </Text>
+            {totalPages > 1 && (
+              <Pagination total={totalPages} value={page} onChange={setPage} size="sm" />
+            )}
+          </Group>
+        )}
+      </Card>
     </Stack>
   );
 }

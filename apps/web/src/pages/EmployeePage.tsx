@@ -1,17 +1,20 @@
 import {
   Alert,
+  Anchor,
+  Avatar,
   Badge,
   Button,
   Card,
   Divider,
   Group,
-  Loader,
   SimpleGrid,
+  Skeleton,
   Stack,
   Text,
   Title,
 } from "@mantine/core";
 import type { EmployeeDto, UpdateEmployeeRequest } from "@salary/shared";
+import { IconArrowLeft, IconPencil } from "@tabler/icons-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { ApiError } from "../api/client.js";
@@ -58,7 +61,20 @@ export function EmployeePage(): React.JSX.Element {
 
   const loaded: EmployeeDto | undefined = employee.data;
   if (loaded === undefined || reference.data === undefined) {
-    return <Loader aria-label="Loading employee" />;
+    return (
+      <Stack gap="lg" aria-busy="true" aria-label="Loading employee">
+        <Card>
+          <Group gap="md" wrap="nowrap">
+            <Skeleton circle height={64} />
+            <Stack gap={8} style={{ flex: 1 }}>
+              <Skeleton height={20} width="40%" radius="sm" />
+              <Skeleton height={12} width="60%" radius="sm" />
+            </Stack>
+          </Group>
+        </Card>
+        <Skeleton height={180} radius="lg" />
+      </Stack>
+    );
   }
   // A const after the guard, so the callbacks below see the narrowed type.
   const current: EmployeeDto = loaded;
@@ -110,33 +126,54 @@ export function EmployeePage(): React.JSX.Element {
   }
 
   return (
-    <Stack>
-      <Group justify="space-between" wrap="wrap" align="flex-start">
-        <div>
-          <Title order={2}>
-            {current.firstName} {current.lastName}
-          </Title>
-          <Group gap="xs" mt={4}>
-            <Text c="dimmed">{current.employeeCode}</Text>
-            {current.status === "LEAVING" && (
-              <Badge color="gray" variant="light">
-                Leaving
-              </Badge>
-            )}
-            <BandBadge position={band} />
+    <Stack gap="lg">
+      <Anchor component={Link} to="/employees" size="sm" c="dimmed">
+        <Group gap={4} wrap="nowrap">
+          <IconArrowLeft size={14} />
+          All employees
+        </Group>
+      </Anchor>
+      <Card>
+        <Group justify="space-between" wrap="wrap" align="center" gap="md">
+          <Group gap="md" wrap="nowrap" style={{ minWidth: 0 }}>
+            <Avatar
+              size={64}
+              radius="xl"
+              color="initials"
+              name={`${current.firstName} ${current.lastName}`}
+            />
+            <div style={{ minWidth: 0 }}>
+              <Title order={2} fz={{ base: 22, sm: 26 }} lh={1.2}>
+                {current.firstName} {current.lastName}
+              </Title>
+              <Text c="dimmed" size="sm">
+                {current.jobTitle} · {current.department.name} · {current.country.name}
+              </Text>
+              <Group gap="xs" mt={6}>
+                <Badge color="gray" ff="monospace">
+                  {current.employeeCode}
+                </Badge>
+                <Badge color="indigo" variant="outline">
+                  {current.level.code}
+                </Badge>
+                {current.status === "LEAVING" && <Badge color="gray">Leaving</Badge>}
+                <BandBadge position={band} />
+              </Group>
+            </div>
           </Group>
-        </div>
-        {!editing && (
-          <Button
-            variant="default"
-            onClick={() => {
-              setEditing(true);
-            }}
-          >
-            Edit profile
-          </Button>
-        )}
-      </Group>
+          {!editing && (
+            <Button
+              variant="default"
+              leftSection={<IconPencil size={16} />}
+              onClick={() => {
+                setEditing(true);
+              }}
+            >
+              Edit profile
+            </Button>
+          )}
+        </Group>
+      </Card>
 
       <Card>
         <Title order={4} mb="md">

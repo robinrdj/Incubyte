@@ -1,8 +1,9 @@
-import { Alert, Card, Loader, Stack, Title } from "@mantine/core";
+import { Alert, Card, Loader, Stack } from "@mantine/core";
 import type { CreateEmployeeRequest } from "@salary/shared";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../auth/AuthContext.js";
+import { PageHeader } from "../components/PageHeader.js";
 import { EmployeeForm, type EmployeeFormValues } from "../components/EmployeeForm.js";
 import { useAsync } from "../hooks/useAsync.js";
 import { errorMessage } from "../lib/errors.js";
@@ -45,8 +46,11 @@ export function NewEmployeePage(): React.JSX.Element {
   }
 
   return (
-    <Stack>
-      <Title order={2}>Add employee</Title>
+    <Stack gap="lg">
+      <PageHeader
+        title="Add employee"
+        description="Creates the employee with an opening salary. Later changes are added to their salary history."
+      />
       <Card>
         {reference.error !== null && (
           <Alert color="red" role="alert" variant="light" mb="md">

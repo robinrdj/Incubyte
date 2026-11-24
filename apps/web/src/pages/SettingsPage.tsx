@@ -14,9 +14,10 @@ import {
   Title,
 } from "@mantine/core";
 import type { FxRateDto, PayBandDto, ReferenceDataDto } from "@salary/shared";
-import { IconPencil, IconPlus } from "@tabler/icons-react";
+import { IconCurrencyDollar, IconPencil, IconPlus, IconScale } from "@tabler/icons-react";
 import { useState } from "react";
 import { useAuth } from "../auth/AuthContext.js";
+import { PageHeader } from "../components/PageHeader.js";
 import { useAsync } from "../hooks/useAsync.js";
 import { errorMessage } from "../lib/errors.js";
 import { formatDate, formatMoney } from "../lib/format.js";
@@ -29,18 +30,19 @@ const todayIso = (): string => new Date().toISOString().slice(0, 10);
 /** HR-maintained settings: the dated exchange rates and the pay bands the analytics rely on. */
 export function SettingsPage(): React.JSX.Element {
   return (
-    <Stack>
-      <div>
-        <Title order={2}>Settings</Title>
-        <Text c="dimmed" size="sm">
-          Exchange rates turn local salaries into US dollars for the analytics. Pay bands decide who
-          is flagged as below or above their band.
-        </Text>
-      </div>
-      <Tabs defaultValue="fx" keepMounted={false}>
+    <Stack gap="lg">
+      <PageHeader
+        title="Settings"
+        description="Exchange rates turn local salaries into US dollars for the analytics. Pay bands decide who is flagged as below or above their band."
+      />
+      <Tabs defaultValue="fx" keepMounted={false} variant="pills">
         <Tabs.List>
-          <Tabs.Tab value="fx">Exchange rates</Tabs.Tab>
-          <Tabs.Tab value="bands">Pay bands</Tabs.Tab>
+          <Tabs.Tab value="fx" leftSection={<IconCurrencyDollar size={16} />}>
+            Exchange rates
+          </Tabs.Tab>
+          <Tabs.Tab value="bands" leftSection={<IconScale size={16} />}>
+            Pay bands
+          </Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="fx" pt="md">
           <FxRatesPanel />
