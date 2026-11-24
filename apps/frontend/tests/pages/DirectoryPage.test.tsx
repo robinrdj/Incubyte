@@ -23,6 +23,24 @@ function page(items: unknown[], total = items.length, pageNumber = 1) {
 
 let recorded: RecordedRequest[];
 
+/** The visible Country input; the MultiSelect label also points at a hidden one. */
+async function countryInput(): Promise<HTMLElement> {
+  const matches = await screen.findAllByLabelText(/^country/i);
+  const input = matches.find(
+    (element) => element.tagName === "INPUT" && element.getAttribute("type") !== "hidden",
+  );
+  if (input === undefined) throw new Error("country input not found");
+  return input;
+}
+
+/** A dropdown option, not the same text elsewhere on the page. */
+async function option(label: string): Promise<HTMLElement> {
+  const matches = await screen.findAllByText(label);
+  const found = matches.find((element) => element.closest("[data-combobox-option]") !== null);
+  if (found === undefined) throw new Error(`no "${label}" option`);
+  return found;
+}
+
 function directoryRequests(): URL[] {
   return recorded
     .filter((r) => r.url.startsWith("/api/employees?"))
@@ -89,7 +107,7 @@ describe("employee directory", () => {
     const table = await screen.findByRole("table", { name: "Employees" });
     const graceRow = within(table).getByText("Grace Hopper").closest("tr");
     expect(graceRow).not.toBeNull();
-    expect(within(graceRow as HTMLElement).getByText("Above band")).toBeInTheDocument();
+    expect(await within(graceRow as HTMLElement).findByText("Above band")).toBeInTheDocument();
     const adaRow = within(table).getByText("Ada Lovelace").closest("tr");
     expect(within(adaRow as HTMLElement).queryByText("Above band")).not.toBeInTheDocument();
   });
@@ -124,8 +142,8 @@ describe("employee directory", () => {
     await screen.findByRole("table", { name: "Employees" });
 
     await user.click(screen.getByRole("button", { name: /^filters/i }));
-    await user.click(screen.getByLabelText(/^country/i));
-    await user.click(await screen.findByText("India"));
+    await user.click(await countryInput());
+    await user.click(await option("India"));
 
     await waitFor(() => {
       expect(
@@ -203,8 +221,8 @@ describe("exporting from the directory", () => {
     await screen.findByRole("table", { name: "Employees" });
 
     await user.click(screen.getByRole("button", { name: /^filters/i }));
-    await user.click(screen.getByLabelText(/^country/i));
-    await user.click(await screen.findByText("India"));
+    await user.click(await countryInput());
+    await user.click(await option("India"));
     await user.click(screen.getByRole("button", { name: "Export CSV" }));
 
     await waitFor(() => {
@@ -376,10 +394,10 @@ describe("choosing several values", () => {
     await screen.findByRole("table", { name: "Employees" });
 
     await user.click(screen.getByRole("button", { name: /^filters/i }));
-    await user.click(screen.getByLabelText(/^country/i));
-    await user.click(await screen.findByText("India"));
-    await user.click(screen.getByLabelText(/^country/i));
-    await user.click(await screen.findByText("Germany"));
+    await user.click(await countryInput());
+    await user.click(await option("India"));
+    await user.click(await countryInput());
+    await user.click(await option("Germany"));
 
     await waitFor(() => {
       expect(

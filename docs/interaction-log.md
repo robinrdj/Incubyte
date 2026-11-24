@@ -839,3 +839,18 @@ The directory and every employee profile downloaded the whole out-of-band report
 **Verification:** both apps typecheck and lint clean. Tests were updated for sessions (new `session.test.ts` and `users.test.ts` on the backend, `UsersPage.test.tsx` and a rewritten `App.test.tsx` on the frontend) but **not run**, as asked.
 
 **Blocked:** `apps/web` could not be renamed while a dev server on port 5173, from the user's VS Code terminal, held the folder open.
+
+---
+
+## 2026-11-25 — Test run before pushing
+
+**User request:** Run the test suites, then push.
+
+**Result:** 151 backend unit, 127 integration, 117 frontend, and 1 shared test. Every backend test passed on the first run. Four frontend directory tests failed, all because the tests had not kept up with the screens:
+
+- The filters now sit in a drawer that renders its fields after it opens, so the tests wait for the Country field instead of looking for it at once.
+- The Country `MultiSelect` label points at the visible input and a hidden one, so a helper picks the visible input.
+- "India" appeared both as a dropdown option and in a table row, so a helper clicks the option inside the dropdown.
+- Band badges now appear after a placeholder, so the test waits for "Above band".
+
+`docs/plan.md` was also out of format after the folder rename. `npm run check` passes.
