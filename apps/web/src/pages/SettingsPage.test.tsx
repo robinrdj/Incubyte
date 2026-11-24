@@ -265,3 +265,29 @@ describe("pay bands", () => {
     });
   });
 });
+
+describe("loading", () => {
+  it("shows a placeholder shaped like the rates tab while it loads", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => undefined)),
+    );
+    renderAt("/settings", <SettingsPage />);
+
+    expect(screen.getByLabelText("Loading exchange rates")).toBeInTheDocument();
+  });
+
+  it("does not reload a tab when switching back to it", async () => {
+    install();
+    const user = userEvent.setup();
+    renderAt("/settings", <SettingsPage />);
+    await screen.findByRole("table", { name: "Latest exchange rates" });
+
+    await user.click(screen.getByRole("tab", { name: "Pay bands" }));
+    await screen.findByRole("table", { name: "Pay bands in Germany" });
+    await user.click(screen.getByRole("tab", { name: "Exchange rates" }));
+
+    expect(screen.getByRole("table", { name: "Latest exchange rates" })).toBeInTheDocument();
+    expect(recorded.filter((r) => r.url === "/api/settings/fx-rates")).toHaveLength(1);
+  });
+});

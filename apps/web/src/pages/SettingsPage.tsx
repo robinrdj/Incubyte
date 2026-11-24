@@ -4,7 +4,7 @@ import {
   Button,
   Card,
   Group,
-  Loader,
+  Skeleton,
   Select,
   Stack,
   Table,
@@ -35,7 +35,9 @@ export function SettingsPage(): React.JSX.Element {
         title="Settings"
         description="Exchange rates turn local salaries into US dollars for the analytics. Pay bands decide who is flagged as below or above their band."
       />
-      <Tabs defaultValue="fx" keepMounted={false} variant="pills">
+      {/* Both tabs stay mounted and hidden with CSS, so switching never reloads them. The default
+          React Activity mode re-runs effects when a tab reappears, which refetched its data. */}
+      <Tabs defaultValue="fx" variant="pills" keepMountedMode="display-none">
         <Tabs.List>
           <Tabs.Tab value="fx" leftSection={<IconCurrencyDollar size={16} />}>
             Exchange rates
@@ -82,7 +84,7 @@ function FxRatesPanel(): React.JSX.Element {
     );
   }
   if (rates.data === undefined || reference.data === undefined) {
-    return <Loader aria-label="Loading exchange rates" />;
+    return <FxRatesSkeleton />;
   }
 
   const { reportingCurrency, items } = rates.data;
@@ -283,7 +285,7 @@ function PayBandsPanel(): React.JSX.Element {
     );
   }
   if (reference.data === undefined || bands.data === undefined) {
-    return <Loader aria-label="Loading pay bands" />;
+    return <PayBandsSkeleton />;
   }
 
   const country =
@@ -526,5 +528,68 @@ function BandRow({
         </>
       )}
     </Table.Tr>
+  );
+}
+
+/** One placeholder table row: a short label cell, value cells, and a button on the right. */
+function SkeletonRow({ cells }: { cells: number[] }): React.JSX.Element {
+  return (
+    <Group
+      gap="lg"
+      wrap="nowrap"
+      py={10}
+      style={{ borderBottom: "1px solid var(--mantine-color-default-border)" }}
+    >
+      {cells.map((width, index) => (
+        <Skeleton key={index} height={12} width={width} radius="sm" />
+      ))}
+      <Skeleton height={26} width={72} radius="md" ml="auto" />
+    </Group>
+  );
+}
+
+/** Placeholder in the shape of the exchange-rate tab: the latest-rates table and the form. */
+function FxRatesSkeleton(): React.JSX.Element {
+  return (
+    <Stack aria-busy="true" aria-label="Loading exchange rates">
+      <Card>
+        <Skeleton height={16} width={140} radius="sm" />
+        <Skeleton height={10} width="70%" radius="sm" mt="sm" mb="lg" />
+        {Array.from({ length: 6 }, (_, index) => (
+          <SkeletonRow key={index} cells={[48, 72, 96]} />
+        ))}
+      </Card>
+      <Card>
+        <Skeleton height={16} width={200} radius="sm" />
+        <Skeleton height={10} width="60%" radius="sm" mt="sm" mb="lg" />
+        <Group gap="md" wrap="wrap" align="flex-end">
+          {[140, 180, 180].map((width, index) => (
+            <Stack key={index} gap={6}>
+              <Skeleton height={10} width={80} radius="sm" />
+              <Skeleton height={36} width={width} radius="md" />
+            </Stack>
+          ))}
+          <Skeleton height={36} width={100} radius="md" />
+        </Group>
+      </Card>
+    </Stack>
+  );
+}
+
+/** Placeholder in the shape of the pay-band tab: the country picker and one row per level. */
+function PayBandsSkeleton(): React.JSX.Element {
+  return (
+    <Card aria-busy="true" aria-label="Loading pay bands">
+      <Group justify="space-between" align="flex-end" mb="md">
+        <div>
+          <Skeleton height={16} width={110} radius="sm" />
+          <Skeleton height={10} width={260} radius="sm" mt="sm" />
+        </div>
+        <Skeleton height={36} width={220} radius="md" />
+      </Group>
+      {Array.from({ length: 6 }, (_, index) => (
+        <SkeletonRow key={index} cells={[32, 110, 110]} />
+      ))}
+    </Card>
   );
 }
