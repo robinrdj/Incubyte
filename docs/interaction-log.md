@@ -664,3 +664,14 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 - Mantine Select options have no `option` role in jsdom. The tests pick the option by its text inside the dropdown, because "Country" also appears as a table header.
 
 **Not verified:** in a real browser. The Chrome extension is still not connected.
+
+---
+
+## 2026-11-24 — Stage 9e: Settings loading and ignored tool files
+
+**User request:** "Add them to gitignore. The settings page loader looks bad, please improve it."
+
+- **Ignored tool files.** `prisma generate` installs agent instruction files: `.agents/`, `.claude/skills`, `.windsurf/`, and `skills-lock.json`. They are now gitignored. The `.claude/skills` entries are symlinks, and a pattern with a slash in the middle only matches from the repository root, so it is written `**/.claude/skills`. A project `.claude/settings.json` could still be committed.
+- **Skeletons.** Both Settings tabs showed a bare spinner. They now show placeholders shaped like their content. The rates tab shows its table rows and the form. The pay bands tab shows the country picker and one row per level.
+- **Root cause of the repeated loader.** Mantine 9 hides inactive tabs with React's `<Activity>`. That runs a tab's effects again when it reappears, so every switch back refetched its data and showed the loader again. With `keepMountedMode="display-none"`, both tabs load once, the pay bands load in the background, and switching is instant.
+- **Tests:** 2 new (the rates skeleton, and no refetch when switching back), 91 web tests in total. A test of the request order found the refetch: switching tabs requested `/api/settings/fx-rates` a second time. `npm run check` passes.
