@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiClient, ApiError, toBase64 } from "./client.js";
+import { ApiClient, ApiError, apiBaseUrl, toBase64 } from "./client.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -134,5 +134,39 @@ describe("toBase64", () => {
     expect(toBase64("Müller:pässwörd")).toBe(
       Buffer.from("Müller:pässwörd", "utf8").toString("base64"),
     );
+  });
+});
+
+describe("hosting the API on another address", () => {
+  it("sends requests to the configured API address", async () => {
+    const { fetch, calls } = fakeFetch(jsonResponse({ items: [], total: 0, page: 1, pageSize: 1 }));
+    const client = new ApiClient({
+      authorization: () => "dG9rZW4=",
+      fetch,
+      baseUrl: "https://api.example.test",
+    });
+
+    await client.listEmployees({ pageSize: 1 });
+
+    expect(calls[0]?.url).toBe("https://api.example.test/api/employees?pageSize=1");
+  });
+
+  it("marks requests as coming from the app, so a 401 does not trigger the browser's own dialog", async () => {
+    const { fetch, calls } = fakeFetch(
+      jsonResponse({ countries: [], departments: [], levels: [] }),
+    );
+
+    await clientWith(fetch).reference();
+
+    expect(new Headers(calls[0]?.init?.headers).get("X-Requested-With")).toBe("XMLHttpRequest");
+  });
+
+  it.each([
+    [{ VITE_API_BASE_URL: "https://api.example.test/" }, "https://api.example.test"],
+    [{ VITE_API_BASE_URL: "  https://api.example.test//  " }, "https://api.example.test"],
+    [{ VITE_API_BASE_URL: "" }, ""],
+    [{}, ""],
+  ])("reads the API address from %j", (env, expected) => {
+    expect(apiBaseUrl(env)).toBe(expected);
   });
 });

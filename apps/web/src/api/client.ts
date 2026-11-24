@@ -50,6 +50,17 @@ export interface ApiClientOptions {
   authorization: () => string | null;
   /** Injected for tests. Defaults to the global fetch, looked up at call time. */
   fetch?: FetchLike;
+  /**
+   * Where the API lives, for example "https://salary-api.onrender.com". Empty means the same origin,
+   * which is how development works through the Vite proxy.
+   */
+  baseUrl?: string;
+}
+
+/** The API address from VITE_API_BASE_URL at build time, without a trailing slash. */
+export function apiBaseUrl(env: Record<string, unknown> = import.meta.env): string {
+  const value = env["VITE_API_BASE_URL"];
+  return typeof value === "string" ? value.trim().replace(/\/+$/, "") : "";
 }
 
 /** Drops undefined values so optional filters are simply absent from the query string. */
@@ -180,7 +191,12 @@ export class ApiClient {
     path: string,
     body?: { jsonBody?: unknown; rawBody?: string; contentType?: string },
   ): Promise<Response> {
-    const headers: Record<string, string> = { Accept: "application/json, text/csv" };
+    const headers: Record<string, string> = {
+      Accept: "application/json, text/csv",
+      // Tells the API this is the app, not a browser visiting the URL, so a 401 comes without a
+      // Basic challenge. Otherwise the browser can show its own sign-in dialog over the app.
+      "X-Requested-With": "XMLHttpRequest",
+    };
     const token = this.options.authorization();
     if (token !== null) {
       headers["Authorization"] = `Basic ${token}`;
@@ -196,7 +212,8 @@ export class ApiClient {
     }
 
     const doFetch = this.options.fetch ?? globalThis.fetch.bind(globalThis);
-    return doFetch(path, { method, headers, ...(payload === undefined ? {} : { body: payload }) });
+    const url = `${this.options.baseUrl ?? ""}${path}`;
+    return doFetch(url, { method, headers, ...(payload === undefined ? {} : { body: payload }) });
   }
 }
 

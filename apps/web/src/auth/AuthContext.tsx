@@ -8,7 +8,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import { ApiClient, toBase64 } from "../api/client.js";
+import { ApiClient, apiBaseUrl, toBase64 } from "../api/client.js";
 
 const STORAGE_KEY = "salary.session";
 
@@ -72,7 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactElemen
   const tokenRef = useRef<string | null>(token);
   tokenRef.current = token;
 
-  const api = useMemo(() => new ApiClient({ authorization: () => tokenRef.current }), []);
+  const baseUrl = useMemo(() => apiBaseUrl(), []);
+  const api = useMemo(
+    () => new ApiClient({ authorization: () => tokenRef.current, baseUrl }),
+    [baseUrl],
+  );
 
   const signIn = useCallback(
     async (email: string, password: string): Promise<void> => {
@@ -80,7 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactElemen
       tokenRef.current = candidate;
       try {
         // A cheap authenticated call. It fails with 401 if the credentials are wrong.
-        await new ApiClient({ authorization: () => candidate }).listEmployees({ pageSize: 1 });
+        await new ApiClient({ authorization: () => candidate, baseUrl }).listEmployees({
+          pageSize: 1,
+        });
       } catch (error) {
         tokenRef.current = token;
         throw error;
@@ -88,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactElemen
       writeStoredToken(candidate);
       setToken(candidate);
     },
-    [token],
+    [token, baseUrl],
   );
 
   const signOut = useCallback((): void => {
