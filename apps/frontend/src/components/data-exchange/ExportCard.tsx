@@ -25,7 +25,7 @@ export function ExportCard(): React.JSX.Element {
     setError(null);
     try {
       const csv = await api.exportCsv({
-        ...(countryCode === null ? {} : { countryCode }),
+        ...(countryCode === null ? {} : { countryCode: [countryCode] }),
         ...(status === "" ? {} : { status: status as EmploymentStatus }),
       });
       downloadCsv("employees.csv", csv);

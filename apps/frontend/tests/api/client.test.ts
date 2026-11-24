@@ -78,9 +78,19 @@ describe("ApiClient requests", () => {
 
   it("returns exported CSV as text", async () => {
     const { fetch } = fakeFetch(new Response("employeeCode\r\nEMP-000001\r\n", { status: 200 }));
-    await expect(clientWith(fetch).exportCsv({ countryCode: "DE" })).resolves.toContain(
+    await expect(clientWith(fetch).exportCsv({ countryCode: ["DE"] })).resolves.toContain(
       "EMP-000001",
     );
+  });
+
+  it("sends several filter values as one comma-separated parameter", async () => {
+    const { fetch, calls } = fakeFetch(
+      jsonResponse({ items: [], total: 0, page: 1, pageSize: 25 }),
+    );
+
+    await clientWith(fetch).listEmployees({ countryCode: ["DE", "IN"], levelCode: ["L3"] });
+
+    expect(calls[0]?.url).toBe("/api/employees?countryCode=DE%2CIN&levelCode=L3");
   });
 });
 

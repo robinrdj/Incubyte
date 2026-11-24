@@ -43,8 +43,16 @@ export function CompensationView({
         />
         <StatCard label="Median" value={formatUsd(report.overall.medianUsd)} icon={IconChartBar} />
         <StatCard label="Average" value={formatUsd(report.overall.averageUsd)} icon={IconMathAvg} />
-        <StatCard label="Lowest" value={formatUsd(report.overall.minUsd)} icon={IconArrowDownRight} />
-        <StatCard label="Highest" value={formatUsd(report.overall.maxUsd)} icon={IconArrowUpRight} />
+        <StatCard
+          label="Lowest"
+          value={formatUsd(report.overall.minUsd)}
+          icon={IconArrowDownRight}
+        />
+        <StatCard
+          label="Highest"
+          value={formatUsd(report.overall.maxUsd)}
+          icon={IconArrowUpRight}
+        />
       </SimpleGrid>
       {report.excludedWithoutSalary > 0 && (
         <Text size="sm" c="dimmed">

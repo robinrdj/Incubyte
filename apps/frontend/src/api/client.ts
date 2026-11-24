@@ -42,9 +42,9 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 
 export interface EmployeeListQuery {
   search?: string;
-  countryCode?: string;
-  departmentName?: string;
-  levelCode?: string;
+  countryCode?: string[];
+  departmentName?: string[];
+  levelCode?: string[];
   status?: EmploymentStatus;
   page?: number;
   pageSize?: number;
@@ -67,11 +67,12 @@ export function apiBaseUrl(env: Record<string, unknown> = import.meta.env): stri
   return typeof value === "string" ? value.trim().replace(/\/+$/, "") : "";
 }
 
-function toQueryString(params: Record<string, string | number | undefined>): string {
+function toQueryString(params: Record<string, string | string[] | number | undefined>): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
-      search.set(key, String(value));
+    const text = Array.isArray(value) ? value.join(",") : value;
+    if (text !== undefined && text !== "") {
+      search.set(key, String(text));
     }
   }
   const text = search.toString();

@@ -1,20 +1,20 @@
-import { Box, Select, SimpleGrid, TextInput } from "@mantine/core";
+import { Box, MultiSelect, Select, SimpleGrid, TextInput } from "@mantine/core";
 import type { EmploymentStatus, ReferenceDataDto } from "@salary/shared";
 import { IconSearch } from "@tabler/icons-react";
 
 export interface DirectoryCriteria {
   search: string;
-  countryCode: string | null;
-  departmentName: string | null;
-  levelCode: string | null;
+  countryCodes: string[];
+  departmentNames: string[];
+  levelCodes: string[];
   status: EmploymentStatus | null;
 }
 
 export const NO_CRITERIA: DirectoryCriteria = {
   search: "",
-  countryCode: null,
-  departmentName: null,
-  levelCode: null,
+  countryCodes: [],
+  departmentNames: [],
+  levelCodes: [],
   status: null,
 };
 
@@ -45,36 +45,41 @@ export function DirectoryFilters({
             onChange({ search: event.currentTarget.value });
           }}
         />
-        <Select
+        <MultiSelect
           label="Country"
-          placeholder="All countries"
+          placeholder={criteria.countryCodes.length === 0 ? "All countries" : undefined}
           data={(reference?.countries ?? []).map((c) => ({ value: c.code, label: c.name }))}
-          value={criteria.countryCode}
-          onChange={(value) => {
-            onChange({ countryCode: value });
+          value={criteria.countryCodes}
+          onChange={(values) => {
+            onChange({ countryCodes: values });
           }}
           clearable
           searchable
+          hidePickedOptions
+          maxValues={20}
         />
-        <Select
+        <MultiSelect
           label="Department"
-          placeholder="All departments"
+          placeholder={criteria.departmentNames.length === 0 ? "All departments" : undefined}
           data={(reference?.departments ?? []).map((d) => d.name)}
-          value={criteria.departmentName}
-          onChange={(value) => {
-            onChange({ departmentName: value });
+          value={criteria.departmentNames}
+          onChange={(values) => {
+            onChange({ departmentNames: values });
           }}
           clearable
+          searchable
+          hidePickedOptions
         />
-        <Select
+        <MultiSelect
           label="Level"
-          placeholder="All levels"
+          placeholder={criteria.levelCodes.length === 0 ? "All levels" : undefined}
           data={(reference?.levels ?? []).map((l) => l.code)}
-          value={criteria.levelCode}
-          onChange={(value) => {
-            onChange({ levelCode: value });
+          value={criteria.levelCodes}
+          onChange={(values) => {
+            onChange({ levelCodes: values });
           }}
           clearable
+          hidePickedOptions
         />
         <Select
           label="Status"

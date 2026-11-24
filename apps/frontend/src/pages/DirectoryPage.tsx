@@ -23,12 +23,13 @@ export const PAGE_SIZE = 25;
 type EmployeeFilters = Omit<EmployeeListQuery, "page" | "pageSize">;
 
 function toFilters(criteria: DirectoryCriteria, search: string): EmployeeFilters {
+  const { countryCodes, departmentNames, levelCodes, status } = criteria;
   return {
     ...(search === "" ? {} : { search }),
-    ...(criteria.countryCode === null ? {} : { countryCode: criteria.countryCode }),
-    ...(criteria.departmentName === null ? {} : { departmentName: criteria.departmentName }),
-    ...(criteria.levelCode === null ? {} : { levelCode: criteria.levelCode }),
-    ...(criteria.status === null ? {} : { status: criteria.status }),
+    ...(countryCodes.length === 0 ? {} : { countryCode: countryCodes }),
+    ...(departmentNames.length === 0 ? {} : { departmentName: departmentNames }),
+    ...(levelCodes.length === 0 ? {} : { levelCode: levelCodes }),
+    ...(status === null ? {} : { status }),
   };
 }
 

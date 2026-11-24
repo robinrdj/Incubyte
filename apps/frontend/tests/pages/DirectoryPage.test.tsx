@@ -123,7 +123,7 @@ describe("employee directory", () => {
     renderAt("/employees", <DirectoryPage />);
     await screen.findByRole("table", { name: "Employees" });
 
-    await user.click(screen.getByRole("combobox", { name: /^country/i }));
+    await user.click(screen.getByLabelText(/^country/i));
     await user.click(await screen.findByText("India"));
 
     await waitFor(() => {
@@ -201,7 +201,7 @@ describe("exporting from the directory", () => {
     renderAt("/employees", <DirectoryPage />);
     await screen.findByRole("table", { name: "Employees" });
 
-    await user.click(screen.getByRole("combobox", { name: /^country/i }));
+    await user.click(screen.getByLabelText(/^country/i));
     await user.click(await screen.findByText("India"));
     await user.click(screen.getByRole("button", { name: "Export CSV" }));
 
@@ -359,5 +359,29 @@ describe("employee count", () => {
     expect(await screen.findByLabelText("Employee count")).toHaveTextContent(
       "10,001 employees · 9,519 active · 482 leaving",
     );
+  });
+});
+
+describe("choosing several values", () => {
+  it("filters by more than one country at once", async () => {
+    recorded = installFakeApi([
+      { method: "GET", path: "/api/reference", body: REFERENCE },
+      { method: "GET", path: "/api/employees", body: page([ADA, GRACE]) },
+      { method: "GET", path: "/api/analytics/band-violations", body: bandReport() },
+    ]);
+    const user = userEvent.setup();
+    renderAt("/employees", <DirectoryPage />);
+    await screen.findByRole("table", { name: "Employees" });
+
+    await user.click(screen.getByLabelText(/^country/i));
+    await user.click(await screen.findByText("India"));
+    await user.click(screen.getByLabelText(/^country/i));
+    await user.click(await screen.findByText("Germany"));
+
+    await waitFor(() => {
+      expect(
+        directoryRequests().some((url) => url.searchParams.get("countryCode") === "IN,DE"),
+      ).toBe(true);
+    });
   });
 });
