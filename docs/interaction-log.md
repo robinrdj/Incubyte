@@ -710,3 +710,31 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 - **Keyboard access.** A table row cannot be a link without breaking table semantics, so each row keeps one real link: the employee's name. Keyboard and screen-reader users reach the profile with Tab and Enter, and the row click gives mouse users a larger target. The employee code is now plain text, so each row has a single link.
 
 **Verification:** 4 new tests. They check that clicking a cell opens the profile, that Enter on the name link opens it, that Ctrl-click opens a new tab without leaving the list, and that an analytics row opens its profile. 95 web tests in total. `npm run check` passes.
+
+---
+
+## 2026-11-24 — Stage 10, step 1: Preparing for separate hosting
+
+**User request:** "Yes, start step 1." This is the code side of deploying the API on Render, the web app on Vercel, and the database on Neon.
+
+**Design decisions:**
+
+- **Neon's two connection strings.** Migrations and the seed prefer `DIRECT_DATABASE_URL`. The running API uses the pooled `DATABASE_URL`. Locally only `DATABASE_URL` exists, so nothing changes there. The seed logs its target host without the password. (Committed earlier, in `e57021b`.)
+- **CORS allow-list.** `CORS_ORIGIN` is a comma-separated list of bare origins, checked at startup, so a typo with a path or a `*` fails fast. When it is empty no CORS headers are sent, which suits the same-origin development proxy. The middleware runs before authentication so the browser's preflight is answered. The token travels in the `Authorization` header, so credentialed CORS and cookies are not involved.
+- **No browser sign-in dialog.** A 401 with `WWW-Authenticate: Basic` makes browsers show their own username and password dialog over the app. The web app now sends `X-Requested-With: XMLHttpRequest`, and the API leaves out the challenge for those requests. curl and other clients still get the standard challenge.
+- **Configurable API address.** `VITE_API_BASE_URL` is set at build time and has trailing slashes removed. It is empty in development, where the Vite proxy is used.
+- **Deployment files.**
+  - `render.yaml`: Ohio region, the same as Neon; free plan; `/health` check; migrations in the build command, because pre-deploy steps need a paid plan; and secrets marked `sync: false`.
+  - `apps/web/vercel.json`: install and build run from the repository root because the web app uses the shared workspace package, and every path is sent to `index.html` so page reloads work.
+
+**Verification:**
+
+- 146 API unit tests (5 new for `CORS_ORIGIN`), 98 integration tests (6 new for CORS and the 401 challenge), and 101 web tests (6 new for the base address and the request marker) pass. `npm run check` passes.
+- A local simulation of the two-host setup:
+  - A production web build pointed at a built API on port 4001, with `CORS_ORIGIN=http://localhost:5190`.
+  - The web app's preflight got 204 with permission, and a signed-in request got 200 with the allow-origin header.
+  - Another site's preflight got no permission header.
+  - A wrong password from the app got 401 with no challenge.
+  - The production build served `/employees` (200).
+
+**Known gap:** `npm audit` reports 3 high-severity advisories in `effect`, which Prisma's CLI pulls in through `@prisma/config`. The offered fix downgrades Prisma to 6, a breaking change. The affected code is a ReDoS in a schema helper that runs only at build and migration time, never on request input, so Prisma stays on 7 until it updates the dependency.
