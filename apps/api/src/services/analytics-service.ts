@@ -6,7 +6,7 @@ import {
 } from "../domain/compensation.js";
 import { REPORTING_CURRENCY, toReportingCurrency, type FxRates } from "../domain/fx.js";
 import { compaRatio, bandPosition } from "../domain/pay-band.js";
-import { formatMoney, type MinorUnits } from "../domain/money.js";
+import { formatMoney, parseMoney, type MinorUnits } from "../domain/money.js";
 import { unprocessable } from "../http/errors.js";
 import type {
   GroupBy,
@@ -15,12 +15,6 @@ import type {
   BandViolationDto,
   BandViolationReportDto,
 } from "@salary/shared";
-
-const employeeInclude = {
-  country: true,
-  department: true,
-  level: true,
-} satisfies Prisma.EmployeeInclude;
 
 const payBandInclude = {
   level: true,
@@ -43,6 +37,32 @@ function toSummaryDto(summary: CompensationSummary): SummaryDto {
     minUsd: money(summary.minMinor),
     maxUsd: money(summary.maxMinor),
   };
+}
+
+/** One active employee with their current salary on a date, as the analytics query returns it. */
+interface CurrentSalaryRow {
+  readonly employeeId: string;
+  readonly employeeCode: string;
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly countryId: number;
+  readonly countryCode: string;
+  readonly countryName: string;
+  readonly departmentName: string;
+  readonly levelId: number;
+  readonly levelCode: string;
+  /** DECIMAL(14,2) as text, so no precision is lost on the way; null when there is no salary yet. */
+  readonly amount: string | null;
+  readonly currency: string | null;
+}
+
+/** Converts a DECIMAL(14,2) text value from the database to integer minor units. */
+function amountToMinor(amount: string): MinorUnits {
+  const parsed = parseMoney(amount);
+  if (!parsed.ok) {
+    throw new Error(`unexpected salary amount from the database: ${amount}`);
+  }
+  return parsed.value;
 }
 
 /** One active employee's current salary, converted to USD, with the labels needed for grouping. */
@@ -163,26 +183,44 @@ export class AnalyticsService {
   private async currentSalaries(
     asOf: string,
   ): Promise<{ points: SalaryPoint[]; excludedWithoutSalary: number }> {
-    const [employees, rates] = await Promise.all([
-      this.db.employee.findMany({
-        where: { status: "ACTIVE" },
-        include: {
-          ...employeeInclude,
-          salaryRecords: {
-            where: { effectiveFrom: { lte: fromDateOnly(asOf) } },
-            orderBy: { effectiveFrom: "desc" },
-            take: 1,
-          },
-        },
-      }),
+    // One query, with the current salary chosen in the database (DISTINCT ON the latest record on
+    // or before the date) and only the columns the analytics use. The ORM version made five
+    // queries and built a full object per employee, which took 6-7 s on a 0.1-CPU host.
+    const [rows, rates] = await Promise.all([
+      this.db.$queryRaw<CurrentSalaryRow[]>`
+        SELECT DISTINCT ON (e."id")
+          e."id"            AS "employeeId",
+          e."employeeCode"  AS "employeeCode",
+          e."firstName"     AS "firstName",
+          e."lastName"      AS "lastName",
+          c."id"            AS "countryId",
+          c."code"          AS "countryCode",
+          c."name"          AS "countryName",
+          d."name"          AS "departmentName",
+          l."id"            AS "levelId",
+          l."code"          AS "levelCode",
+          s."amount"::text  AS "amount",
+          s."currency"      AS "currency"
+        FROM "Employee" e
+        JOIN "Country" c    ON c."id" = e."countryId"
+        JOIN "Department" d ON d."id" = e."departmentId"
+        JOIN "Level" l      ON l."id" = e."levelId"
+        LEFT JOIN "SalaryRecord" s
+          ON s."employeeId" = e."id" AND s."effectiveFrom" <= ${fromDateOnly(asOf)}::date
+        WHERE e."status" = 'ACTIVE'
+        ORDER BY e."id", s."effectiveFrom" DESC
+      `,
       this.loadRates(asOf),
     ]);
 
-    const withSalary = employees.filter((employee) => employee.salaryRecords.length > 0);
+    const withSalary = rows.filter(
+      (row): row is CurrentSalaryRow & { amount: string; currency: string } =>
+        row.amount !== null && row.currency !== null,
+    );
     const missing = [
       ...new Set(
         withSalary
-          .map((employee) => employee.salaryRecords[0]?.currency ?? "")
+          .map((row) => row.currency)
           .filter((currency) => currency !== REPORTING_CURRENCY && !rates.has(currency)),
       ),
     ].sort();
@@ -192,30 +230,26 @@ export class AnalyticsService {
       );
     }
 
-    const points = withSalary.map((employee): SalaryPoint => {
-      const salary = employee.salaryRecords[0];
-      if (!salary) {
-        throw new Error("unreachable: employees without salaries were filtered out");
-      }
-      const minor = decimalToMinor(salary.amount);
+    const points = withSalary.map((row): SalaryPoint => {
+      const minor = amountToMinor(row.amount);
       return {
-        employeeId: employee.id,
-        employeeCode: employee.employeeCode,
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        countryId: employee.country.id,
-        countryCode: employee.country.code,
-        countryName: employee.country.name,
-        departmentName: employee.department.name,
-        levelId: employee.level.id,
-        levelCode: employee.level.code,
-        amount: salary.amount.toFixed(2),
-        currency: salary.currency,
-        usd: toReportingCurrency(minor, salary.currency, rates),
+        employeeId: row.employeeId,
+        employeeCode: row.employeeCode,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        countryId: row.countryId,
+        countryCode: row.countryCode,
+        countryName: row.countryName,
+        departmentName: row.departmentName,
+        levelId: row.levelId,
+        levelCode: row.levelCode,
+        amount: formatMoney(minor),
+        currency: row.currency,
+        usd: toReportingCurrency(minor, row.currency, rates),
       };
     });
 
-    return { points, excludedWithoutSalary: employees.length - withSalary.length };
+    return { points, excludedWithoutSalary: rows.length - withSalary.length };
   }
 
   /** Latest rate for each currency on or before the date, to USD. */
