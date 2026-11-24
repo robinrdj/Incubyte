@@ -1,8 +1,4 @@
-/**
- * Formats a decimal amount string such as "90000.00" with its currency, using the viewer's locale
- * for separators. The string is parsed only for display; it is never used for arithmetic, so no
- * rounding happens to stored values.
- */
+/** Display only: the amount string is never used for arithmetic. */
 export function formatMoney(amount: string, currency: string, locale = "en-US"): string {
   const value = Number(amount);
   if (!Number.isFinite(value)) {
@@ -15,7 +11,6 @@ export function formatMoney(amount: string, currency: string, locale = "en-US"):
   }).format(value);
 }
 
-/** Formats a YYYY-MM-DD date as a short, unambiguous label, e.g. "15 Jan 2025". */
 export function formatDate(isoDate: string, locale = "en-GB"): string {
   const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) {
@@ -32,3 +27,6 @@ export function formatDate(isoDate: string, locale = "en-GB"): string {
 export function bandLabel(position: "BELOW" | "ABOVE"): string {
   return position === "ABOVE" ? "Above band" : "Below band";
 }
+
+export const formatUsd = (value: string | null): string =>
+  value === null ? "—" : formatMoney(value, "USD");

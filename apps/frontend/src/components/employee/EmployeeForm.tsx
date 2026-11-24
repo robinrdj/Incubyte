@@ -39,7 +39,6 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const AMOUNT = /^\d+(\.\d{1,2})?$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Initial values for editing an existing employee. Salary fields are not edited here. */
 export function valuesFromEmployee(employee: EmployeeDto): EmployeeFormValues {
   return {
     ...EMPTY_VALUES,
@@ -67,10 +66,7 @@ interface EmployeeFormProps {
   onCancel?: () => void;
 }
 
-/**
- * Profile form for creating or editing an employee. Create mode also captures the opening salary.
- * Validation here mirrors the API, so most mistakes are caught before a request is sent.
- */
+/** Validation mirrors the API, so most mistakes are caught before sending. */
 export function EmployeeForm({
   mode,
   reference,
@@ -114,7 +110,6 @@ export function EmployeeForm({
     },
   });
 
-  // Keep the form in step when the employee is reloaded after a save.
   const initialKey = JSON.stringify(initialValues ?? null);
   useEffect(() => {
     if (initialValues) {

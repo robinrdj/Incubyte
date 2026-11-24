@@ -1,7 +1,6 @@
 import { Badge } from "@mantine/core";
 import { bandLabel } from "../lib/format.js";
 
-/** Marks an employee whose salary is outside their level and country band. Renders nothing otherwise. */
 export function BandBadge({
   position,
 }: {

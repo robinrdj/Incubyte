@@ -1,5 +1,5 @@
 import { Box, Group, Text } from "@mantine/core";
-import { formatMoney } from "../lib/format.js";
+import { formatMoney } from "../../lib/format.js";
 
 export interface MedianBar {
   label: string;
@@ -7,10 +7,7 @@ export interface MedianBar {
   medianUsd: string | null;
 }
 
-/**
- * Horizontal bars of median pay per group. The table beside it carries the same numbers, so the bars
- * are decorative (hidden from assistive technology) and nothing is conveyed by colour alone.
- */
+/** Decorative: the table below carries the same numbers for screen readers. */
 export function MedianBars({ bars }: { bars: MedianBar[] }): React.JSX.Element {
   const values = bars.map((bar) => (bar.medianUsd === null ? 0 : Number(bar.medianUsd)));
   const largest = Math.max(1, ...values);

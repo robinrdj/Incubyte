@@ -13,7 +13,6 @@ const BODY_FONT =
   "'Geist Variable', Geist, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
 const HEADING_FONT = "'Sora Variable', Sora, " + BODY_FONT;
 
-/** The accent: an indigo leaning towards violet, from lightest to darkest. */
 const brand: MantineColorsTuple = [
   "#eef0ff",
   "#dfe2ff",
@@ -27,7 +26,7 @@ const brand: MantineColorsTuple = [
   "#363ca9",
 ];
 
-/** Dark-mode greys with a slight blue cast, which reads as cleaner than neutral grey. */
+/** Blue-tinted dark greys. */
 const dark: MantineColorsTuple = [
   "#d5d7e0",
   "#acaebf",
@@ -41,10 +40,6 @@ const dark: MantineColorsTuple = [
   "#0c0d21",
 ];
 
-/**
- * The app's look: Sora headings over Geist text, a custom indigo-violet accent, soft layered shadows, rounded
- * cards, and quiet tables. Every colour comes from the palette, so light and dark mode both follow.
- */
 export const theme = createTheme({
   colors: { brand, dark },
   primaryColor: "brand",
@@ -97,7 +92,6 @@ export const theme = createTheme({
   },
 });
 
-/** App-level colours that differ by scheme: the page behind the cards and the table header tint. */
 export const cssVariablesResolver: CSSVariablesResolver = (current) => ({
   variables: {},
   light: {

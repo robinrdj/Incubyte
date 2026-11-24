@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installFakeApi, type RecordedRequest } from "../support/fake-api.js";
 import { bandReport, renderAt, signedIn } from "../support/render.js";
 import { Route, Routes } from "react-router";
-import { AnalyticsPage, BAND_PAGE_SIZE } from "../../src/pages/AnalyticsPage.js";
+import { BAND_PAGE_SIZE } from "../../src/components/analytics/BandViolationsCard.js";
+import { AnalyticsPage } from "../../src/pages/AnalyticsPage.js";
 
 const COMPENSATION = {
   asOf: "2026-11-23",

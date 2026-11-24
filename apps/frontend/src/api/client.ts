@@ -25,7 +25,7 @@ import type {
   UpdateEmployeeRequest,
 } from "@salary/shared";
 
-/** A failed request, carrying the server's error code so the UI can react to specific cases. */
+/** A failed request, with the server's error code. */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -53,21 +53,20 @@ export interface EmployeeListQuery {
 export interface ApiClientOptions {
   /** The current session token, or null when signed out. */
   token: () => string | null;
-  /** Defaults to the global fetch, looked up at call time so tests can replace it. */
+  /** Defaults to the global fetch, looked up per call so tests can replace it. */
   fetch?: FetchLike;
-  /** Where the API lives. Empty means the same origin, as in development through the Vite proxy. */
+  /** Empty means the same origin (the Vite proxy in development). */
   baseUrl?: string;
-  /** Called when a signed-in request is rejected, for example because the session expired. */
+  /** Called when a signed-in request gets 401, e.g. an expired session. */
   onUnauthorized?: () => void;
 }
 
-/** The API address from VITE_API_BASE_URL at build time, without a trailing slash. */
+/** VITE_API_BASE_URL without a trailing slash. */
 export function apiBaseUrl(env: Record<string, unknown> = import.meta.env): string {
   const value = env["VITE_API_BASE_URL"];
   return typeof value === "string" ? value.trim().replace(/\/+$/, "") : "";
 }
 
-/** Leaves out undefined and empty values, so unset filters are absent from the query string. */
 function toQueryString(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -79,7 +78,6 @@ function toQueryString(params: Record<string, string | number | undefined>): str
   return text === "" ? "" : `?${text}`;
 }
 
-/** Typed client for the API. Request and response types come from @salary/shared. */
 export class ApiClient {
   constructor(private readonly options: ApiClientOptions) {}
 
@@ -252,7 +250,7 @@ export class ApiClient {
   }
 }
 
-/** Returns undefined for an empty or non-JSON body, such as an HTML error page from a proxy. */
+/** Undefined for an empty or non-JSON body, e.g. a proxy's HTML error page. */
 function parseBody(text: string): unknown {
   if (text === "") {
     return undefined;

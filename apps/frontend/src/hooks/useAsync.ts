@@ -4,14 +4,10 @@ export interface AsyncState<T> {
   data: T | undefined;
   error: unknown;
   loading: boolean;
-  /** Runs the loader again, for example after a save. */
   reload: () => void;
 }
 
-/**
- * Loads data when the arguments change. A response that arrives after the arguments have changed
- * is ignored, so a slow earlier request cannot overwrite a newer result.
- */
+/** Loads when the arguments change; a stale response never overwrites a newer one. */
 export function useAsync<T, Args extends readonly unknown[]>(
   loader: (...args: Args) => Promise<T>,
   args: Args,
@@ -23,7 +19,7 @@ export function useAsync<T, Args extends readonly unknown[]>(
   const latestLoader = useRef(loader);
   latestLoader.current = loader;
 
-  // The arguments are compared by value through JSON, so callers can pass fresh arrays and objects.
+  // Compared by value, so callers can pass fresh arrays and objects.
   const key = JSON.stringify(args);
 
   useEffect(() => {

@@ -11,7 +11,7 @@ import { DirectoryPage } from "./pages/DirectoryPage.js";
 import { EmployeePage } from "./pages/EmployeePage.js";
 import { NewEmployeePage } from "./pages/NewEmployeePage.js";
 
-/** Signed-out visitors see the sign-in page at any address. Signing in keeps the address they opened. */
+/** Signed-out visitors see the sign-in page at any address, then land where they were going. */
 export function App(): React.JSX.Element {
   const { isSignedIn } = useAuth();
   if (!isSignedIn) {

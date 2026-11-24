@@ -17,7 +17,6 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    {/* "auto" follows the system setting until the user picks light or dark; the choice is remembered. */}
     <MantineProvider
       theme={theme}
       cssVariablesResolver={cssVariablesResolver}

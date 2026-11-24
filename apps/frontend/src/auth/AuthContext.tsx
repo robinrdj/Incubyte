@@ -18,10 +18,7 @@ interface StoredSession {
   user: HrUserDto;
 }
 
-/**
- * The session lives in sessionStorage: a reload keeps the user signed in, and closing the tab signs
- * them out. Storage can be blocked in private windows, so every access is guarded.
- */
+/** Per-tab session; storage may be blocked in private windows, so access is guarded. */
 function readSession(): StoredSession | null {
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);

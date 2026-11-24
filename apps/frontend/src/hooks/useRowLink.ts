@@ -8,12 +8,8 @@ export interface RowLinkProps {
 }
 
 /**
- * Makes a whole table row open a page when clicked. Each row should still contain one real link
- * (usually the person's name), so keyboard and screen-reader users reach the same page; the row
- * click is a larger target for the mouse.
- *
- * Clicks on links, buttons, and inputs inside the row are left to them. Ctrl- or Cmd-click opens a
- * new tab, as with a link, and a click that ends a text selection does not navigate.
+ * Makes a whole row clickable. Keep one real link in the row for keyboard users. Inner controls,
+ * Ctrl/Cmd-click (new tab), and text selection behave as usual.
  */
 export function useRowLink(): (to: string) => RowLinkProps {
   const navigate = useNavigate();

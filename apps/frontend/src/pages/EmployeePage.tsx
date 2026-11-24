@@ -1,35 +1,26 @@
-import {
-  Alert,
-  Anchor,
-  Avatar,
-  Badge,
-  Button,
-  Card,
-  Divider,
-  Group,
-  SimpleGrid,
-  Skeleton,
-  Stack,
-  Text,
-  Title,
-} from "@mantine/core";
-import type { EmployeeDto, UpdateEmployeeRequest } from "@salary/shared";
-import { IconArrowLeft, IconPencil } from "@tabler/icons-react";
+import { Alert, Anchor, Button, Card, Group, Stack, Text, Title } from "@mantine/core";
+import type { EmployeeDto } from "@salary/shared";
+import { IconArrowLeft } from "@tabler/icons-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { ApiError } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.js";
-import { BandBadge } from "../components/BandBadge.js";
 import {
   EmployeeForm,
   valuesFromEmployee,
   type EmployeeFormValues,
-} from "../components/EmployeeForm.js";
-import { SalaryChangeForm, type SalaryChangeValues } from "../components/SalaryChangeForm.js";
-import { SalaryTimeline } from "../components/SalaryTimeline.js";
+} from "../components/employee/EmployeeForm.js";
+import { ProfileDetails } from "../components/employee/ProfileDetails.js";
+import { ProfileHeader } from "../components/employee/ProfileHeader.js";
+import { ProfileError, ProfileSkeleton } from "../components/employee/ProfileStates.js";
+import { SalaryCard } from "../components/employee/SalaryCard.js";
+import {
+  SalaryChangeForm,
+  type SalaryChangeValues,
+} from "../components/employee/SalaryChangeForm.js";
 import { useAsync } from "../hooks/useAsync.js";
 import { errorMessage } from "../lib/errors.js";
-import { formatDate, formatMoney } from "../lib/format.js";
+import { profilePatch } from "../lib/profile-patch.js";
 
 export function EmployeePage(): React.JSX.Element {
   const { id = "" } = useParams();
@@ -47,65 +38,30 @@ export function EmployeePage(): React.JSX.Element {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   if (employee.error !== null) {
-    const notFound = employee.error instanceof ApiError && employee.error.status === 404;
     return (
-      <Stack>
-        <Title order={2}>{notFound ? "Employee not found" : "Employee"}</Title>
-        <Alert color="red" role="alert" variant="light">
-          {notFound ? "This employee does not exist." : errorMessage(employee.error)}
-        </Alert>
-        <Text>
-          <Link to="/employees">Back to employees</Link>
-        </Text>
-      </Stack>
+      <ProfileError
+        notFound={employee.error instanceof ApiError && employee.error.status === 404}
+        message={errorMessage(employee.error)}
+      />
     );
+  }
+  if (employee.data === undefined || reference.data === undefined) {
+    return <ProfileSkeleton />;
   }
 
-  const loaded: EmployeeDto | undefined = employee.data;
-  if (loaded === undefined || reference.data === undefined) {
-    return (
-      <Stack gap="lg" aria-busy="true" aria-label="Loading employee">
-        <Card>
-          <Group gap="md" wrap="nowrap">
-            <Skeleton circle height={64} />
-            <Stack gap={8} style={{ flex: 1 }}>
-              <Skeleton height={20} width="40%" radius="sm" />
-              <Skeleton height={12} width="60%" radius="sm" />
-            </Stack>
-          </Group>
-        </Card>
-        <Skeleton height={180} radius="lg" />
-      </Stack>
-    );
-  }
-  // A const after the guard, so the callbacks below see the narrowed type.
-  const current: EmployeeDto = loaded;
+  const current: EmployeeDto = employee.data;
   const countryCurrency =
     reference.data.countries.find((c) => c.code === current.country.code)?.currency ?? "";
-
   const band = bands.data?.items.find((item) => item.employeeId === current.id)?.position;
   const records = history.data?.items ?? [];
-  const latest = records[records.length - 1];
+  const latest = records.at(-1);
 
   async function saveProfile(values: EmployeeFormValues): Promise<void> {
-    const original = valuesFromEmployee(current);
-    // Send only the fields that changed, so a save never rewrites data the user did not touch.
-    const patch: UpdateEmployeeRequest = {};
-    if (values.firstName !== original.firstName) patch.firstName = values.firstName.trim();
-    if (values.lastName !== original.lastName) patch.lastName = values.lastName.trim();
-    if (values.email !== original.email) patch.email = values.email.trim().toLowerCase();
-    if (values.jobTitle !== original.jobTitle) patch.jobTitle = values.jobTitle.trim();
-    if (values.countryCode !== original.countryCode) patch.countryCode = values.countryCode;
-    if (values.departmentName !== original.departmentName)
-      patch.departmentName = values.departmentName;
-    if (values.levelCode !== original.levelCode) patch.levelCode = values.levelCode;
-    if (values.status !== original.status) patch.status = values.status;
-
+    const patch = profilePatch(current, values);
     if (Object.keys(patch).length === 0) {
       setEditing(false);
       return;
     }
-
     setSaving(true);
     setSaveError(null);
     try {
@@ -135,47 +91,18 @@ export function EmployeePage(): React.JSX.Element {
           All employees
         </Group>
       </Anchor>
-      <Card>
-        <Group justify="space-between" wrap="wrap" align="center" gap="md">
-          <Group gap="md" wrap="nowrap" style={{ minWidth: 0 }}>
-            <Avatar
-              size={64}
-              radius="xl"
-              color="initials"
-              name={`${current.firstName} ${current.lastName}`}
-            />
-            <div style={{ minWidth: 0 }}>
-              <Title order={2} fz={{ base: 22, sm: 26 }} lh={1.2}>
-                {current.firstName} {current.lastName}
-              </Title>
-              <Text c="dimmed" size="sm">
-                {current.jobTitle} · {current.department.name} · {current.country.name}
-              </Text>
-              <Group gap="xs" mt={6}>
-                <Badge color="gray" ff="monospace">
-                  {current.employeeCode}
-                </Badge>
-                <Badge color="brand" variant="outline">
-                  {current.level.code}
-                </Badge>
-                {current.status === "LEAVING" && <Badge color="gray">Leaving</Badge>}
-                <BandBadge position={band} />
-              </Group>
-            </div>
-          </Group>
-          {!editing && (
-            <Button
-              variant="default"
-              leftSection={<IconPencil size={16} />}
-              onClick={() => {
+
+      <ProfileHeader
+        employee={current}
+        band={band}
+        {...(editing
+          ? {}
+          : {
+              onEdit: () => {
                 setEditing(true);
-              }}
-            >
-              Edit profile
-            </Button>
-          )}
-        </Group>
-      </Card>
+              },
+            })}
+      />
 
       <Card>
         <Title order={4} mb="md">
@@ -203,37 +130,15 @@ export function EmployeePage(): React.JSX.Element {
             />
           </>
         ) : (
-          <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <Detail label="Email" value={current.email} />
-            <Detail label="Job title" value={current.jobTitle} />
-            <Detail label="Country" value={current.country.name} />
-            <Detail label="Department" value={current.department.name} />
-            <Detail label="Level" value={current.level.code} />
-            <Detail label="Start date" value={formatDate(current.startDate)} />
-            <Detail label="Status" value={current.status === "ACTIVE" ? "Active" : "Leaving"} />
-          </SimpleGrid>
+          <ProfileDetails employee={current} />
         )}
       </Card>
 
-      <Card>
-        <Title order={4}>Current salary</Title>
-        <Text size="xl" fw={600} mt="xs">
-          {current.currentSalary
-            ? formatMoney(current.currentSalary.amount, current.currentSalary.currency)
-            : "No salary recorded"}
-        </Text>
-        <Divider my="md" />
-        <Title order={4} mb="md">
-          Salary history
-        </Title>
-        {history.error !== null ? (
-          <Alert color="red" role="alert" variant="light">
-            The salary history could not be loaded.
-          </Alert>
-        ) : (
-          <SalaryTimeline records={records} />
-        )}
-      </Card>
+      <SalaryCard
+        current={current.currentSalary}
+        history={records}
+        historyFailed={history.error !== null}
+      />
 
       <Card>
         <Title order={4} mb="md">
@@ -254,16 +159,5 @@ export function EmployeePage(): React.JSX.Element {
         Back to employees
       </Button>
     </Stack>
-  );
-}
-
-function Detail({ label, value }: { label: string; value: string }): React.JSX.Element {
-  return (
-    <div>
-      <Text size="sm" c="dimmed">
-        {label}
-      </Text>
-      <Text>{value}</Text>
-    </div>
   );
 }

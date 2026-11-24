@@ -1,10 +1,7 @@
 import { Skeleton, Text } from "@mantine/core";
 import { BandBadge } from "../BandBadge.js";
 
-/**
- * The band badge with its space always reserved: a badge-sized placeholder while positions load,
- * then the badge, or a dash for someone within their band. The row never changes size.
- */
+/** Always takes the same space, so rows do not shift when positions arrive. */
 export function BandStatus({
   position,
   loading,

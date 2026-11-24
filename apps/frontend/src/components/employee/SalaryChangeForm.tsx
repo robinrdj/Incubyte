@@ -9,9 +9,8 @@ export interface SalaryChangeValues {
 }
 
 interface SalaryChangeFormProps {
-  /** Currency to start from: the employee's current salary currency. */
   currency: string;
-  /** The current salary's date. A change on this date corrects it; earlier dates are refused. */
+  /** A change on this date corrects it; earlier dates are refused. */
   currentEffectiveFrom: string | undefined;
   onSave: (values: SalaryChangeValues) => Promise<void>;
 }

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../auth/AuthContext.js";
 import { PageHeader } from "../components/PageHeader.js";
-import { EmployeeForm, type EmployeeFormValues } from "../components/EmployeeForm.js";
+import { EmployeeForm, type EmployeeFormValues } from "../components/employee/EmployeeForm.js";
 import { useAsync } from "../hooks/useAsync.js";
 import { errorMessage } from "../lib/errors.js";
 

@@ -1,7 +1,4 @@
-/**
- * Reads a file as text. Uses FileReader rather than File.text(), so it works in every browser the
- * app targets and in the test environment, which does not implement File.text().
- */
+/** FileReader rather than File.text(), which jsdom does not implement. */
 export function readFileText(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

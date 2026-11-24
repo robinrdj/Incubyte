@@ -1,9 +1,6 @@
 import { ApiError } from "../api/client.js";
 
-/**
- * Turns any failure into a sentence a person can act on. Validation failures list each field,
- * so the user sees exactly what to correct.
- */
+/** A readable message for any failure; validation errors list each field. */
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === "VALIDATION_FAILED" && Array.isArray(error.details)) {

@@ -8,10 +8,14 @@ export function ExportCsvButton({
   load,
   filename,
   label = "Export CSV",
+  size = "xs",
+  disabled = false,
 }: {
   load: () => Promise<string>;
   filename: string;
   label?: string;
+  size?: "xs" | "sm";
+  disabled?: boolean;
 }): React.JSX.Element {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,9 +41,10 @@ export function ExportCsvButton({
       )}
       <Button
         variant="default"
-        size="xs"
-        leftSection={<IconDownload size={14} />}
+        size={size}
+        leftSection={<IconDownload size={size === "xs" ? 14 : 16} />}
         loading={busy}
+        disabled={disabled}
         onClick={() => void exportCsv()}
       >
         {label}
