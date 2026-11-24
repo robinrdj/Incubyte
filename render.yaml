@@ -1,0 +1,32 @@
+# Render Blueprint for the API. In Render: New > Blueprint, pick this repository, then fill in the
+# variables marked sync: false (they are secrets or depend on other services).
+services:
+  - type: web
+    name: salary-management-api
+    runtime: node
+    # Same region as the Neon database (AWS us-east-2, Ohio): every request makes database round trips.
+    region: ohio
+    plan: free
+    # Migrations run during the build, because pre-deploy commands need a paid plan. They use the
+    # direct Neon connection (DIRECT_DATABASE_URL); the running API uses the pooled DATABASE_URL.
+    buildCommand: >-
+      npm ci &&
+      npm run build -w packages/shared &&
+      npm run build -w apps/api &&
+      npm run db:deploy -w apps/api
+    startCommand: npm start -w apps/api
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL # Neon pooled connection string (host contains -pooler)
+        sync: false
+      - key: DIRECT_DATABASE_URL # Neon direct connection string
+        sync: false
+      - key: HR_EMAIL
+        sync: false
+      - key: HR_PASSWORD
+        sync: false
+      - key: CORS_ORIGIN # the web app's address, for example https://salary-management.vercel.app
+        sync: false

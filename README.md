@@ -166,3 +166,50 @@ Errors use one shape: `{ "error": { "code", "message", "details?" } }`.
 Status codes: 400 invalid input, 401 unauthenticated, 404 not found, 409 duplicate email or code, 422 business-rule violation.
 
 Environment variables (in `.env`): `DATABASE_URL`, `HR_EMAIL` (the sign-in email), `HR_PASSWORD` (at least 12 characters), and optionally `PORT` (default 4000).
+
+## Deployment
+
+The web app and the API are hosted separately: the API on [Render](https://render.com), the web app on [Vercel](https://vercel.com), and PostgreSQL on [Neon](https://neon.tech). All three have free plans.
+
+```
+Browser ──> Vercel (static React app) ──HTTPS + Basic auth──> Render (Node API) ──> Neon (PostgreSQL)
+                                                               ohio                  us-east-2 (Ohio)
+```
+
+### 1. Database (Neon)
+
+Create the tables and load the seed from your machine, as described in [Hosted database (Neon)](#hosted-database-neon).
+
+### 2. API (Render)
+
+1. In Render, choose **New > Blueprint** and select this repository. `render.yaml` defines the service: Node 22, Ohio region, health check on `/health`.
+2. Fill in the variables Render asks for:
+
+| Variable              | Value                                                       |
+| --------------------- | ----------------------------------------------------------- |
+| `DATABASE_URL`        | Neon **pooled** connection string                           |
+| `DIRECT_DATABASE_URL` | Neon **direct** connection string (used by migrations)      |
+| `HR_EMAIL`            | The HR sign-in email                                        |
+| `HR_PASSWORD`         | At least 12 characters                                      |
+| `CORS_ORIGIN`         | The Vercel address from step 3, e.g. `https://….vercel.app` |
+
+The build installs, compiles, and applies pending migrations (`prisma migrate deploy`). Migrations run during the build because Render's pre-deploy step needs a paid plan.
+
+### 3. Web app (Vercel)
+
+1. In Vercel, import this repository and set **Root Directory** to `apps/web`. `apps/web/vercel.json` sets the install and build commands, which run from the repository root because the app uses the shared workspace package. It also sends every path to `index.html`, so reloading a page such as `/employees/…` works.
+2. Set the environment variables, then deploy:
+
+| Variable             | Value                                                                      |
+| -------------------- | -------------------------------------------------------------------------- |
+| `VITE_API_BASE_URL`  | The Render address, e.g. `https://salary-management-api.onrender.com`      |
+| `VITE_DEMO_EMAIL`    | Optional: shows a demo account on the sign-in page (must match `HR_EMAIL`) |
+| `VITE_DEMO_PASSWORD` | Optional: must match `HR_PASSWORD`. Leave empty for real data              |
+
+3. Copy the Vercel address into the API's `CORS_ORIGIN` on Render. Render redeploys when a variable changes.
+
+### Notes
+
+- **Cold starts.** Render's free plan stops the API after about 15 minutes without traffic, and the next request then takes 30–60 seconds. An uptime monitor that calls `/health` every 10 minutes keeps it awake. Neon also suspends an idle database, which adds about a second to the first query.
+- **Sign-in from the browser.** The web app sends `X-Requested-With: XMLHttpRequest`. The API then leaves the Basic challenge off a 401, so a wrong password shows the app's message rather than the browser's own sign-in dialog.
+- **CORS.** Only the origins in `CORS_ORIGIN` may call the API from a browser. The token travels in the `Authorization` header, so no cookies or credentialed CORS are involved.
