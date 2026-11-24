@@ -9,7 +9,13 @@ import type {
   SalaryInput,
   UpdateEmployeeInput,
 } from "../http/schemas.js";
-import type { AuditEventDto, EmployeeDto, Page, ReferenceDataDto, SalaryDto } from "@salary/shared";
+import type {
+  AuditEventDto,
+  EmployeeDto,
+  EmployeeListDto,
+  ReferenceDataDto,
+  SalaryDto,
+} from "@salary/shared";
 
 type Tx = Prisma.TransactionClient;
 
@@ -94,12 +100,16 @@ export class EmployeeService {
     return latestToday(this.clock());
   }
 
-  async list(query: ListEmployeesQuery): Promise<Page<EmployeeDto>> {
+  async list(query: ListEmployeesQuery): Promise<EmployeeListDto> {
     const where = employeeWhere(query);
+    const withoutStatus = employeeWhere({ ...query, status: undefined });
 
     // Reads run outside a transaction. Prisma's adapter fires relation loads concurrently inside a
     // transaction, which triggers a pg driver deprecation warning.
-    const total = await this.db.employee.count({ where });
+    const [total, byStatus] = await Promise.all([
+      this.db.employee.count({ where }),
+      this.db.employee.groupBy({ by: ["status"], where: withoutStatus, _count: { _all: true } }),
+    ]);
     const rows = await this.db.employee.findMany({
       where,
       include: employeeInclude,
@@ -113,6 +123,10 @@ export class EmployeeService {
       total,
       page: query.page,
       pageSize: query.pageSize,
+      statusCounts: {
+        ACTIVE: byStatus.find((row) => row.status === "ACTIVE")?._count._all ?? 0,
+        LEAVING: byStatus.find((row) => row.status === "LEAVING")?._count._all ?? 0,
+      },
     };
   }
 

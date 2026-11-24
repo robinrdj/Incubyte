@@ -90,7 +90,10 @@ export class AnalyticsService {
   /** Headcount and pay statistics in USD, grouped by country, department, or level. */
   async compensation(groupBy: GroupBy, asOf?: string): Promise<CompensationReportDto> {
     const date = asOf ?? toDateOnly(this.clock());
-    const { points, excludedWithoutSalary } = await this.currentSalaries(date);
+    const [{ points, excludedWithoutSalary }, excludedLeaving] = await Promise.all([
+      this.currentSalaries(date),
+      this.db.employee.count({ where: { status: "LEAVING" } }),
+    ]);
 
     const classify = (point: SalaryPoint): { key: string; label: string } => {
       switch (groupBy) {
@@ -115,6 +118,7 @@ export class AnalyticsService {
       groupBy,
       overall: toSummaryDto(summarizeCompensation(points.map((p) => p.usd))),
       excludedWithoutSalary,
+      excludedLeaving,
       groups,
     };
   }

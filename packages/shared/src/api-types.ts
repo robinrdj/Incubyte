@@ -15,6 +15,12 @@ export interface Page<T> {
   pageSize: number;
 }
 
+/** A page of the directory, with how many matching employees have each status. */
+export interface EmployeeListDto extends Page<EmployeeDto> {
+  /** Counts across every page, for the filters other than status. */
+  statusCounts: Record<EmploymentStatus, number>;
+}
+
 // A type alias, not an interface, so it can be stored as a JSON audit snapshot.
 export type SalaryDto = {
   amount: string;
@@ -93,6 +99,8 @@ export interface CompensationReportDto {
   groupBy: GroupBy;
   overall: SummaryDto;
   excludedWithoutSalary: number;
+  /** Employees marked Leaving, who the analytics do not count. */
+  excludedLeaving: number;
   groups: Array<{ key: string; label: string; summary: SummaryDto }>;
 }
 

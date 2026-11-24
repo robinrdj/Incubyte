@@ -19,6 +19,7 @@ describe("compensationToCsv", () => {
     groupBy: "country",
     overall: summary(3, "100000.00"),
     excludedWithoutSalary: 0,
+    excludedLeaving: 0,
     groups: [
       { key: "1", label: "Germany", summary: summary(2, "110000.00") },
       { key: "2", label: "India", summary: summary(1, "30000.00") },

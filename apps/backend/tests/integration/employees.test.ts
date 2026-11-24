@@ -226,6 +226,28 @@ describe("listing employees", () => {
     expect(response.body.total).toBe(1);
   });
 
+  it("counts each status across all pages, whatever the status filter", async () => {
+    const employee = await createEmployee({
+      employeeCode: "EMP-000004",
+      email: "leaving@acme.test",
+      firstName: "Leaving",
+      lastName: "Person",
+    });
+    await request(app)
+      .patch(`/api/employees/${employee.id}`)
+      .set("Authorization", AUTH_HEADER)
+      .send({ status: "LEAVING" });
+
+    const response = await request(app)
+      .get("/api/employees?status=ACTIVE&pageSize=1")
+      .set("Authorization", AUTH_HEADER);
+
+    expect(response.body.statusCounts).toEqual({
+      ACTIVE: response.body.total,
+      LEAVING: 1,
+    });
+  });
+
   it("rejects a page size above the maximum", async () => {
     const response = await request(app)
       .get("/api/employees?pageSize=500")
