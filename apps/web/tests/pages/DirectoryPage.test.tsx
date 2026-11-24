@@ -1,10 +1,10 @@
 import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { installFakeApi, type RecordedRequest } from "../test-utils/fakeApi.js";
-import { REFERENCE, bandReport, employee, renderAt, signedIn } from "../test-utils/render.js";
+import { installFakeApi, type RecordedRequest } from "../support/fake-api.js";
+import { REFERENCE, bandReport, employee, renderAt, signedIn } from "../support/render.js";
 import { Route, Routes } from "react-router";
-import { DirectoryPage } from "./DirectoryPage.js";
+import { DirectoryPage } from "../../src/pages/DirectoryPage.js";
 
 const ADA = employee();
 const GRACE = employee({

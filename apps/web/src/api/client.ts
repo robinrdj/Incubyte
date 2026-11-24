@@ -5,11 +5,13 @@ import type {
   BandViolationReportDto,
   CompensationReportDto,
   CreateEmployeeRequest,
+  CreateHrUserRequest,
   EmployeeDto,
   EmploymentStatus,
   FxRateDto,
   FxRateListDto,
   GroupBy,
+  HrUserDto,
   ImportReportDto,
   Page,
   PayBandDto,
@@ -18,10 +20,12 @@ import type {
   SalaryDto,
   SaveFxRateRequest,
   SavePayBandRequest,
+  SessionDto,
+  SignInRequest,
   UpdateEmployeeRequest,
 } from "@salary/shared";
 
-/** A failed request. Carries the server's error code so the UI can react to specific cases. */
+/** A failed request, carrying the server's error code so the UI can react to specific cases. */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -47,15 +51,14 @@ export interface EmployeeListQuery {
 }
 
 export interface ApiClientOptions {
-  /** Returns the base64 "user:password" token, or null when signed out. */
-  authorization: () => string | null;
-  /** Injected for tests. Defaults to the global fetch, looked up at call time. */
+  /** The current session token, or null when signed out. */
+  token: () => string | null;
+  /** Defaults to the global fetch, looked up at call time so tests can replace it. */
   fetch?: FetchLike;
-  /**
-   * Where the API lives, for example "https://salary-api.onrender.com". Empty means the same origin,
-   * which is how development works through the Vite proxy.
-   */
+  /** Where the API lives. Empty means the same origin, as in development through the Vite proxy. */
   baseUrl?: string;
+  /** Called when a signed-in request is rejected, for example because the session expired. */
+  onUnauthorized?: () => void;
 }
 
 /** The API address from VITE_API_BASE_URL at build time, without a trailing slash. */
@@ -64,7 +67,7 @@ export function apiBaseUrl(env: Record<string, unknown> = import.meta.env): stri
   return typeof value === "string" ? value.trim().replace(/\/+$/, "") : "";
 }
 
-/** Drops undefined values so optional filters are simply absent from the query string. */
+/** Leaves out undefined and empty values, so unset filters are absent from the query string. */
 function toQueryString(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -76,12 +79,25 @@ function toQueryString(params: Record<string, string | number | undefined>): str
   return text === "" ? "" : `?${text}`;
 }
 
-/**
- * Typed client for the salary API. Every method's inputs and outputs come from @salary/shared,
- * so the web app and the API cannot drift apart without a compile error.
- */
+/** Typed client for the API. Request and response types come from @salary/shared. */
 export class ApiClient {
   constructor(private readonly options: ApiClientOptions) {}
+
+  signIn(body: SignInRequest): Promise<SessionDto> {
+    return this.sendJson("POST", "/api/session", body);
+  }
+
+  signOut(): Promise<void> {
+    return this.request("DELETE", "/api/session");
+  }
+
+  listUsers(): Promise<{ items: HrUserDto[] }> {
+    return this.getJson("/api/users");
+  }
+
+  createUser(body: CreateHrUserRequest): Promise<HrUserDto> {
+    return this.sendJson("POST", "/api/users", body);
+  }
 
   reference(): Promise<ReferenceDataDto> {
     return this.getJson("/api/reference");
@@ -177,10 +193,9 @@ export class ApiClient {
     body?: { jsonBody?: unknown; rawBody?: string; contentType?: string },
   ): Promise<T> {
     const response = await this.send(method, path, body);
-    const text = await response.text();
-    const data = parseBody(text);
+    const data = parseBody(await response.text());
     if (!response.ok) {
-      throw toApiError(response.status, data);
+      throw this.failure(response.status, data);
     }
     return data as T;
   }
@@ -189,9 +204,16 @@ export class ApiClient {
     const response = await this.send("GET", path);
     const text = await response.text();
     if (!response.ok) {
-      throw toApiError(response.status, parseBody(text));
+      throw this.failure(response.status, parseBody(text));
     }
     return text;
+  }
+
+  private failure(status: number, data: unknown): ApiError {
+    if (status === 401 && this.options.token() !== null) {
+      this.options.onUnauthorized?.();
+    }
+    return toApiError(status, data);
   }
 
   private send(
@@ -199,15 +221,10 @@ export class ApiClient {
     path: string,
     body?: { jsonBody?: unknown; rawBody?: string; contentType?: string },
   ): Promise<Response> {
-    const headers: Record<string, string> = {
-      Accept: "application/json, text/csv",
-      // Tells the API this is the app, not a browser visiting the URL, so a 401 comes without a
-      // Basic challenge. Otherwise the browser can show its own sign-in dialog over the app.
-      "X-Requested-With": "XMLHttpRequest",
-    };
-    const token = this.options.authorization();
+    const headers: Record<string, string> = { Accept: "application/json, text/csv" };
+    const token = this.options.token();
     if (token !== null) {
-      headers["Authorization"] = `Basic ${token}`;
+      headers["Authorization"] = `Bearer ${token}`;
     }
 
     let payload: string | undefined;
@@ -225,7 +242,7 @@ export class ApiClient {
   }
 }
 
-/** Parses a response body, returning undefined for empty or non-JSON text (e.g. an HTML error page). */
+/** Returns undefined for an empty or non-JSON body, such as an HTML error page from a proxy. */
 function parseBody(text: string): unknown {
   if (text === "") {
     return undefined;
@@ -243,13 +260,4 @@ function toApiError(status: number, data: unknown): ApiError {
     return new ApiError(status, error.code, error.message, error.details);
   }
   return new ApiError(status, "HTTP_ERROR", `The request failed (${String(status)})`);
-}
-
-/** Base64 of a UTF-8 string, for the Basic authorization token. btoa alone rejects non-Latin-1 text. */
-export function toBase64(value: string): string {
-  let binary = "";
-  for (const byte of new TextEncoder().encode(value)) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary);
 }

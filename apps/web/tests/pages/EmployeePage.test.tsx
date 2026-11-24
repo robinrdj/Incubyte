@@ -2,7 +2,7 @@ import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/re
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Route, Routes } from "react-router";
-import { installFakeApi, type RecordedRequest } from "../test-utils/fakeApi.js";
+import { installFakeApi, type RecordedRequest } from "../support/fake-api.js";
 import {
   REFERENCE,
   SALARY_HISTORY,
@@ -10,8 +10,8 @@ import {
   employee,
   renderAt,
   signedIn,
-} from "../test-utils/render.js";
-import { EmployeePage } from "./EmployeePage.js";
+} from "../support/render.js";
+import { EmployeePage } from "../../src/pages/EmployeePage.js";
 
 const ID = "11111111-1111-4111-8111-111111111111";
 const ADDRESS = `/employees/${ID}`;

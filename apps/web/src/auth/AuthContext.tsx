@@ -1,3 +1,4 @@
+import type { HrUserDto, SessionDto } from "@salary/shared";
 import {
   createContext,
   useCallback,
@@ -8,110 +9,92 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import { ApiClient, apiBaseUrl, toBase64 } from "../api/client.js";
+import { ApiClient, apiBaseUrl } from "../api/client.js";
 
 const STORAGE_KEY = "salary.session";
 
+interface StoredSession {
+  token: string;
+  user: HrUserDto;
+}
+
 /**
- * Keeps the Basic-auth token for the browser tab only (sessionStorage), so a reload keeps the user
- * signed in and closing the tab signs them out. Storage can be blocked (private windows, strict
- * settings), so every access is guarded and the app still works without it.
+ * The session lives in sessionStorage: a reload keeps the user signed in, and closing the tab signs
+ * them out. Storage can be blocked in private windows, so every access is guarded.
  */
-function readStoredToken(): string | null {
+function readSession(): StoredSession | null {
   try {
-    return window.sessionStorage.getItem(STORAGE_KEY);
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    const parsed = raw === null ? null : (JSON.parse(raw) as Partial<StoredSession>);
+    return parsed?.token && parsed.user ? (parsed as StoredSession) : null;
   } catch {
     return null;
   }
 }
 
-function writeStoredToken(token: string | null): void {
+function writeSession(session: StoredSession | null): void {
   try {
-    if (token === null) {
+    if (session === null) {
       window.sessionStorage.removeItem(STORAGE_KEY);
     } else {
-      window.sessionStorage.setItem(STORAGE_KEY, token);
+      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
     }
   } catch {
-    // Storage unavailable: the session lasts until reload, which is an acceptable fallback.
-  }
-}
-
-/** The email inside a Basic-auth token, or null if the token cannot be read. */
-export function emailFromToken(token: string): string | null {
-  try {
-    const bytes = Uint8Array.from(atob(token), (char) => char.charCodeAt(0));
-    const decoded = new TextDecoder().decode(bytes);
-    const separator = decoded.indexOf(":");
-    return separator > 0 ? decoded.slice(0, separator) : null;
-  } catch {
-    return null;
+    // Without storage the session lasts until the page reloads.
   }
 }
 
 export interface AuthContextValue {
   isSignedIn: boolean;
-  /** The signed-in HR email, for display. */
-  email: string | null;
-  /**
-   * Verifies the credentials against the API, then starts the session. Throws ApiError if rejected.
-   * The email is trimmed and lower-cased, so capitals typed on a phone keyboard still match.
-   */
+  user: HrUserDto | null;
+  /** Throws ApiError when the email or password is wrong. */
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
-  /** The API client, bound to the current session. */
   api: ApiClient;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }): ReactElement {
-  const [token, setToken] = useState<string | null>(readStoredToken);
+  const [session, setSession] = useState<StoredSession | null>(readSession);
+  const tokenRef = useRef<string | null>(session?.token ?? null);
+  tokenRef.current = session?.token ?? null;
 
-  // The client reads the token through a ref, so it always sends the current session.
-  const tokenRef = useRef<string | null>(token);
-  tokenRef.current = token;
+  const clearSession = useCallback((): void => {
+    writeSession(null);
+    tokenRef.current = null;
+    setSession(null);
+  }, []);
 
-  const baseUrl = useMemo(() => apiBaseUrl(), []);
   const api = useMemo(
-    () => new ApiClient({ authorization: () => tokenRef.current, baseUrl }),
-    [baseUrl],
+    () =>
+      new ApiClient({
+        token: () => tokenRef.current,
+        baseUrl: apiBaseUrl(),
+        onUnauthorized: clearSession,
+      }),
+    [clearSession],
   );
 
   const signIn = useCallback(
     async (email: string, password: string): Promise<void> => {
-      const candidate = toBase64(`${email.trim().toLowerCase()}:${password}`);
-      tokenRef.current = candidate;
-      try {
-        // A cheap authenticated call. It fails with 401 if the credentials are wrong.
-        await new ApiClient({ authorization: () => candidate, baseUrl }).listEmployees({
-          pageSize: 1,
-        });
-      } catch (error) {
-        tokenRef.current = token;
-        throw error;
-      }
-      writeStoredToken(candidate);
-      setToken(candidate);
+      const created: SessionDto = await api.signIn({ email: email.trim().toLowerCase(), password });
+      const next = { token: created.token, user: created.user };
+      writeSession(next);
+      tokenRef.current = next.token;
+      setSession(next);
     },
-    [token, baseUrl],
+    [api],
   );
 
   const signOut = useCallback((): void => {
-    writeStoredToken(null);
-    tokenRef.current = null;
-    setToken(null);
-  }, []);
+    api.signOut().catch(() => undefined);
+    clearSession();
+  }, [api, clearSession]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({
-      isSignedIn: token !== null,
-      email: token === null ? null : emailFromToken(token),
-      signIn,
-      signOut,
-      api,
-    }),
-    [token, signIn, signOut, api],
+    () => ({ isSignedIn: session !== null, user: session?.user ?? null, signIn, signOut, api }),
+    [session, signIn, signOut, api],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

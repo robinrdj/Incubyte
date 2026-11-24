@@ -29,7 +29,6 @@ export function formatDate(isoDate: string, locale = "en-GB"): string {
   }).format(date);
 }
 
-/** Label for a band position, shown as a badge on the directory and profile. */
 export function bandLabel(position: "BELOW" | "ABOVE"): string {
   return position === "ABOVE" ? "Above band" : "Below band";
 }

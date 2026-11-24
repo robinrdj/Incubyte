@@ -44,7 +44,6 @@ const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
   { value: "level", label: "Level" },
 ];
 
-/** Rows per page in the out-of-band list. */
 export const BAND_PAGE_SIZE = 25;
 
 /** How long a reload must take before "Updating" appears, so cached switches do not flicker. */
@@ -52,7 +51,6 @@ const UPDATING_DELAY_MS = 150;
 
 const money = (value: string | null): string => (value === null ? "—" : formatMoney(value, "USD"));
 
-/** Compensation dashboard: overall figures, grouped breakdown, and employees outside their pay band. */
 export function AnalyticsPage(): React.JSX.Element {
   const { api } = useAuth();
   const [groupBy, setGroupBy] = useState<GroupBy>("country");
@@ -91,6 +89,7 @@ export function AnalyticsPage(): React.JSX.Element {
   return (
     <Stack gap="lg">
       <PageHeader
+        icon={IconChartBar}
         title="Analytics"
         description="Active employees, in US dollars at the exchange rate in force on the chosen date."
         actions={
@@ -239,7 +238,6 @@ function CompensationView({
   );
 }
 
-/** Placeholder in the shape of the dashboard while the first figures load. */
 function CompensationSkeleton(): React.JSX.Element {
   return (
     <Stack gap="lg" aria-busy="true" aria-label="Loading analytics">

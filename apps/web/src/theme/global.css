@@ -24,3 +24,24 @@ h3 {
   background: color-mix(in srgb, var(--mantine-color-body) 82%, transparent);
   backdrop-filter: saturate(180%) blur(10px);
 }
+
+/* Sign-in page backdrop: two soft glows over a faint dot grid. */
+.auth-backdrop {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(48rem 32rem at 8% -10%, rgb(91 97 239 / 0.22), transparent 70%),
+    radial-gradient(40rem 30rem at 105% 110%, rgb(151 117 250 / 0.2), transparent 70%),
+    var(--app-page-bg);
+}
+
+.auth-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--mantine-color-default-border) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+  pointer-events: none;
+}

@@ -1,9 +1,9 @@
 import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { installFakeApi, type FakeRoute, type RecordedRequest } from "../test-utils/fakeApi.js";
-import { REFERENCE, renderAt, signedIn } from "../test-utils/render.js";
-import { SettingsPage } from "./SettingsPage.js";
+import { installFakeApi, type FakeRoute, type RecordedRequest } from "../support/fake-api.js";
+import { REFERENCE, renderAt, signedIn } from "../support/render.js";
+import { SettingsPage } from "../../src/pages/SettingsPage.js";
 
 /** EUR has two dated rates; INR has none, so it must be flagged. */
 const RATES = {

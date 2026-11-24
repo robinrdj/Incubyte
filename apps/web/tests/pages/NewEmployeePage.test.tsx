@@ -2,9 +2,9 @@ import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Route, Routes } from "react-router";
-import { installFakeApi, type RecordedRequest } from "../test-utils/fakeApi.js";
-import { REFERENCE, employee, renderAt, signedIn } from "../test-utils/render.js";
-import { NewEmployeePage } from "./NewEmployeePage.js";
+import { installFakeApi, type RecordedRequest } from "../support/fake-api.js";
+import { REFERENCE, employee, renderAt, signedIn } from "../support/render.js";
+import { NewEmployeePage } from "../../src/pages/NewEmployeePage.js";
 
 const NEW_ID = "33333333-3333-4333-8333-333333333333";
 

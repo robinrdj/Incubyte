@@ -10,6 +10,7 @@ import {
   Text,
   Title,
 } from "@mantine/core";
+import { IconFileSpreadsheet } from "@tabler/icons-react";
 import { EMPLOYEE_CSV_COLUMNS, type EmploymentStatus, type ImportReportDto } from "@salary/shared";
 import { useState } from "react";
 import { useAuth } from "../auth/AuthContext.js";
@@ -25,11 +26,11 @@ const STATUS_OPTIONS = [
   { value: "LEAVING", label: "Leaving" },
 ];
 
-/** Export employees to CSV, and import a CSV with a check-first step and row-level errors. */
 export function DataExchangePage(): React.JSX.Element {
   return (
     <Stack gap="lg">
       <PageHeader
+        icon={IconFileSpreadsheet}
         title="Import and export"
         description="The import and export use the same columns, so an exported file can be changed and imported again."
       />

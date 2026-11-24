@@ -1,14 +1,21 @@
 import { MantineProvider } from "@mantine/core";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router";
-import { App } from "./App.js";
-import { AuthProvider } from "./auth/AuthContext.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { App } from "../src/App.js";
+import { AuthProvider } from "../src/auth/AuthContext.js";
 
 const EMAIL = "hr.manager@acme.test";
 const PASSWORD = "correct-horse-battery";
-const EXPECTED_AUTH = `Basic ${btoa(`${EMAIL}:${PASSWORD}`)}`;
+const TOKEN = "session-token";
+const USER = {
+  id: "99999999-9999-4999-8999-999999999999",
+  name: "Test HR",
+  email: EMAIL,
+  createdAt: "2026-11-01T09:00:00.000Z",
+  createdBy: null,
+};
 
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -17,26 +24,30 @@ function json(body: unknown, status: number): Response {
   });
 }
 
-/**
- * A fake API for these flows. It accepts one set of credentials and rejects everything else with 401.
- * Only the employee list is needed, because that is what the sign-in check calls.
- */
-function fakeApi(): void {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn((url: string, init?: RequestInit) => {
-      const auth = new Headers(init?.headers).get("Authorization");
-      if (auth !== EXPECTED_AUTH) {
-        return Promise.resolve(
-          json({ error: { code: "UNAUTHORIZED", message: "Authentication required" } }, 401),
-        );
-      }
-      if (url.startsWith("/api/employees")) {
-        return Promise.resolve(json({ items: [], total: 0, page: 1, pageSize: 1 }, 200));
-      }
-      return Promise.resolve(json({ error: { code: "NOT_STUBBED", message: "not stubbed" } }, 404));
-    }),
-  );
+/** Accepts one email and password at sign-in, then only requests that carry the issued token. */
+function fakeApi(): ReturnType<typeof vi.fn> {
+  const fetch = vi.fn((url: string, init?: RequestInit) => {
+    if (url === "/api/session" && init?.method === "POST") {
+      const body = JSON.parse(init.body as string) as { email: string; password: string };
+      return Promise.resolve(
+        body.email === EMAIL && body.password === PASSWORD
+          ? json({ token: TOKEN, expiresAt: "2026-11-25T00:00:00Z", user: USER }, 201)
+          : json({ error: { code: "INVALID_CREDENTIALS", message: "Incorrect" } }, 401),
+      );
+    }
+    if (new Headers(init?.headers).get("Authorization") !== `Bearer ${TOKEN}`) {
+      return Promise.resolve(json({ error: { code: "UNAUTHORIZED", message: "Sign in" } }, 401));
+    }
+    if (url === "/api/session" && init?.method === "DELETE") {
+      return Promise.resolve(new Response(null, { status: 204 }));
+    }
+    if (url.startsWith("/api/employees")) {
+      return Promise.resolve(json({ items: [], total: 0, page: 1, pageSize: 25 }, 200));
+    }
+    return Promise.resolve(json({ error: { code: "NOT_STUBBED", message: "not stubbed" } }, 404));
+  });
+  vi.stubGlobal("fetch", fetch);
+  return fetch;
 }
 
 function renderApp(initialPath = "/") {
@@ -61,11 +72,12 @@ async function signIn(
   await user.click(screen.getByRole("button", { name: "Sign in" }));
 }
 
+let fetch: ReturnType<typeof vi.fn>;
+
 beforeEach(() => {
   window.sessionStorage.clear();
-  vi.stubEnv("VITE_DEMO_EMAIL", "");
-  vi.stubEnv("VITE_DEMO_PASSWORD", "");
-  fakeApi();
+  vi.stubEnv("VITE_HIDE_DEMO_ACCOUNT", "true");
+  fetch = fakeApi();
 });
 
 afterEach(() => {
@@ -81,7 +93,7 @@ describe("sign-in", () => {
     expect(screen.queryByRole("navigation", { name: "Main navigation" })).not.toBeInTheDocument();
   });
 
-  it("shows the navigation after signing in with valid credentials", async () => {
+  it("shows the navigation after signing in", async () => {
     const user = userEvent.setup();
     renderApp("/");
 
@@ -89,9 +101,19 @@ describe("sign-in", () => {
 
     expect(await screen.findByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Employees" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "HR users" })).toBeInTheDocument();
   });
 
-  it("shows a clear message for wrong credentials and stays on the form", async () => {
+  it("accepts the email in any letter case", async () => {
+    const user = userEvent.setup();
+    renderApp("/");
+
+    await signIn(user, "HR.Manager@ACME.test", PASSWORD);
+
+    expect(await screen.findByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
+  });
+
+  it("shows a clear message for a wrong password and stays on the form", async () => {
     const user = userEvent.setup();
     renderApp("/");
 
@@ -99,6 +121,16 @@ describe("sign-in", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Incorrect email or password.");
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+  });
+
+  it("asks for a valid email without calling the API", async () => {
+    const user = userEvent.setup();
+    renderApp("/");
+
+    await signIn(user, "hr", PASSWORD);
+
+    expect(await screen.findByText("Enter your work email address.")).toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("keeps the session across a reload within the same tab", async () => {
@@ -113,57 +145,34 @@ describe("sign-in", () => {
     expect(await screen.findByRole("heading", { name: "Analytics", level: 2 })).toBeInTheDocument();
   });
 
-  it("signs out and returns to the sign-in form", async () => {
+  it("signs out from the account menu and returns to the sign-in form", async () => {
     const user = userEvent.setup();
     renderApp("/");
     await signIn(user, EMAIL, PASSWORD);
     await screen.findByRole("navigation", { name: "Main navigation" });
 
-    await user.click(screen.getByRole("button", { name: "Sign out" }));
+    await user.click(screen.getByRole("button", { name: "Account menu" }));
+    await user.click(await screen.findByText("Sign out"));
 
     expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
     expect(window.sessionStorage.getItem("salary.session")).toBeNull();
   });
-});
 
-describe("signing in with an email", () => {
-  it("accepts the email in any letter case", async () => {
-    const user = userEvent.setup();
-    renderApp("/");
+  it("returns to the sign-in form when the session has expired", async () => {
+    window.sessionStorage.setItem(
+      "salary.session",
+      JSON.stringify({ token: "expired-token", user: USER }),
+    );
 
-    await signIn(user, "HR.Manager@ACME.test", PASSWORD);
+    renderApp("/employees");
 
-    expect(await screen.findByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
-  });
-
-  it("asks for a valid email without calling the API", async () => {
-    const user = userEvent.setup();
-    renderApp("/");
-
-    await signIn(user, "hr", PASSWORD);
-
-    expect(await screen.findByText("Enter your work email address.")).toBeInTheDocument();
-    expect(fetch).not.toHaveBeenCalled();
-  });
-
-  it("shows who is signed in", async () => {
-    const user = userEvent.setup();
-    renderApp("/");
-
-    await signIn(user, EMAIL, PASSWORD);
-
-    expect(await screen.findByText(EMAIL)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
   });
 });
 
 describe("demo account", () => {
-  it("is hidden when no demo account is configured", () => {
-    renderApp("/");
-
-    expect(screen.queryByRole("button", { name: "Use demo account" })).not.toBeInTheDocument();
-  });
-
-  it("shows the demo credentials and fills them in", async () => {
+  it("is shown by default and signs in with one click", async () => {
+    vi.stubEnv("VITE_HIDE_DEMO_ACCOUNT", "");
     vi.stubEnv("VITE_DEMO_EMAIL", EMAIL);
     vi.stubEnv("VITE_DEMO_PASSWORD", PASSWORD);
     const user = userEvent.setup();
@@ -171,10 +180,17 @@ describe("demo account", () => {
 
     expect(screen.getByText(EMAIL)).toBeInTheDocument();
     expect(screen.getByText(PASSWORD)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Use demo account" }));
-    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    await user.click(screen.getByRole("button", { name: "Sign in with the demo account" }));
 
     expect(await screen.findByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
+  });
+
+  it("can be hidden for a deployment with real data", () => {
+    renderApp("/");
+
+    expect(
+      screen.queryByRole("button", { name: "Sign in with the demo account" }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -195,9 +211,9 @@ describe("navigation", () => {
 
     await user.click(screen.getByRole("link", { name: "Analytics" }));
 
-    await waitFor(() =>
-      expect(screen.getByRole("heading", { name: "Analytics", level: 2 })).toBeInTheDocument(),
-    );
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Analytics", level: 2 })).toBeInTheDocument();
+    });
   });
 
   it("shows a not-found page for an unknown address", async () => {

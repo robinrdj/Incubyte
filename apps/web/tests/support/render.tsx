@@ -8,16 +8,21 @@ import type {
 } from "@salary/shared";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router";
-import { AuthProvider } from "../auth/AuthContext.js";
-import { toBase64 } from "../api/client.js";
+import { AuthProvider } from "../../src/auth/AuthContext.js";
 
-export const TEST_PASSWORD = "correct-horse-battery";
+export const TEST_USER = {
+  id: "99999999-9999-4999-8999-999999999999",
+  name: "Test HR",
+  email: "hr.manager@acme.test",
+  createdAt: "2026-11-01T09:00:00.000Z",
+  createdBy: null,
+};
 
-/** Starts the test signed in, by writing the session the same way a real sign-in does. */
+/** Starts the test signed in, by storing a session the same way a real sign-in does. */
 export function signedIn(): void {
   window.sessionStorage.setItem(
     "salary.session",
-    toBase64(`hr.manager@acme.test:${TEST_PASSWORD}`),
+    JSON.stringify({ token: "test-session-token", user: TEST_USER }),
   );
 }
 

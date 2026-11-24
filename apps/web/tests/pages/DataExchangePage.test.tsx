@@ -1,10 +1,10 @@
 import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { installFakeApi, type RecordedRequest } from "../test-utils/fakeApi.js";
-import { REFERENCE, renderAt, signedIn } from "../test-utils/render.js";
-import { readFileText } from "../lib/files.js";
-import { DataExchangePage } from "./DataExchangePage.js";
+import { installFakeApi, type RecordedRequest } from "../support/fake-api.js";
+import { REFERENCE, renderAt, signedIn } from "../support/render.js";
+import { readFileText } from "../../src/lib/files.js";
+import { DataExchangePage } from "../../src/pages/DataExchangePage.js";
 
 const CSV_FILE = "employeeCode,firstName\r\nEMP-000001,Ada\r\n";
 

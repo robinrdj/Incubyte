@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { bandLabel, formatDate, formatMoney } from "./format.js";
-import { errorMessage } from "./errors.js";
-import { ApiError } from "../api/client.js";
+import { bandLabel, formatDate, formatMoney } from "../../src/lib/format.js";
+import { errorMessage } from "../../src/lib/errors.js";
+import { ApiError } from "../../src/api/client.js";
 
 describe("formatMoney", () => {
   it("shows the currency with thousands separators and two decimals", () => {

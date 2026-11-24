@@ -4,6 +4,7 @@ import { AppLayout } from "./layout/AppLayout.js";
 import { LoginPage } from "./pages/LoginPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { SettingsPage } from "./pages/SettingsPage.js";
+import { UsersPage } from "./pages/UsersPage.js";
 import { AnalyticsPage } from "./pages/AnalyticsPage.js";
 import { DataExchangePage } from "./pages/DataExchangePage.js";
 import { DirectoryPage } from "./pages/DirectoryPage.js";
@@ -27,6 +28,7 @@ export function App(): React.JSX.Element {
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="data-exchange" element={<DataExchangePage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="users" element={<UsersPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

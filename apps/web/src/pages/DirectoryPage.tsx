@@ -16,7 +16,7 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
-import { IconDownload, IconPlus, IconSearch, IconUserSearch } from "@tabler/icons-react";
+import { IconDownload, IconPlus, IconSearch, IconUserSearch, IconUsers } from "@tabler/icons-react";
 import { useDebouncedValue } from "@mantine/hooks";
 import type { EmployeeDto, EmploymentStatus } from "@salary/shared";
 import { useMemo, useState } from "react";
@@ -41,7 +41,6 @@ const STATUS_OPTIONS = [
   { value: "LEAVING", label: "Leaving" },
 ];
 
-/** Employee directory: search, filters, pagination, and a band badge on people outside their band. */
 export function DirectoryPage(): React.JSX.Element {
   const { api } = useAuth();
   const [search, setSearch] = useState("");
@@ -122,6 +121,7 @@ export function DirectoryPage(): React.JSX.Element {
   return (
     <Stack gap="lg">
       <PageHeader
+        icon={IconUsers}
         title="Employees"
         description={
           directory.data === undefined

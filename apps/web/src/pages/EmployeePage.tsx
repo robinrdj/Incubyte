@@ -31,7 +31,6 @@ import { useAsync } from "../hooks/useAsync.js";
 import { errorMessage } from "../lib/errors.js";
 import { formatDate, formatMoney } from "../lib/format.js";
 
-/** The profile page: details, edit, current salary, salary history, and recording a salary change. */
 export function EmployeePage(): React.JSX.Element {
   const { id = "" } = useParams();
   const { api } = useAuth();

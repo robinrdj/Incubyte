@@ -14,7 +14,13 @@ import {
   Title,
 } from "@mantine/core";
 import type { FxRateDto, PayBandDto, ReferenceDataDto } from "@salary/shared";
-import { IconCurrencyDollar, IconPencil, IconPlus, IconScale } from "@tabler/icons-react";
+import {
+  IconCurrencyDollar,
+  IconPencil,
+  IconPlus,
+  IconScale,
+  IconSettings,
+} from "@tabler/icons-react";
 import { useState } from "react";
 import { useAuth } from "../auth/AuthContext.js";
 import { PageHeader } from "../components/PageHeader.js";
@@ -27,11 +33,11 @@ const AMOUNT_PATTERN = /^\d{1,12}(\.\d{1,2})?$/;
 
 const todayIso = (): string => new Date().toISOString().slice(0, 10);
 
-/** HR-maintained settings: the dated exchange rates and the pay bands the analytics rely on. */
 export function SettingsPage(): React.JSX.Element {
   return (
     <Stack gap="lg">
       <PageHeader
+        icon={IconSettings}
         title="Settings"
         description="Exchange rates turn local salaries into US dollars for the analytics. Pay bands decide who is flagged as below or above their band."
       />
@@ -531,7 +537,6 @@ function BandRow({
   );
 }
 
-/** One placeholder table row: a short label cell, value cells, and a button on the right. */
 function SkeletonRow({ cells }: { cells: number[] }): React.JSX.Element {
   return (
     <Group
@@ -548,7 +553,6 @@ function SkeletonRow({ cells }: { cells: number[] }): React.JSX.Element {
   );
 }
 
-/** Placeholder in the shape of the exchange-rate tab: the latest-rates table and the form. */
 function FxRatesSkeleton(): React.JSX.Element {
   return (
     <Stack aria-busy="true" aria-label="Loading exchange rates">
@@ -576,7 +580,6 @@ function FxRatesSkeleton(): React.JSX.Element {
   );
 }
 
-/** Placeholder in the shape of the pay-band tab: the country picker and one row per level. */
 function PayBandsSkeleton(): React.JSX.Element {
   return (
     <Card aria-busy="true" aria-label="Loading pay bands">

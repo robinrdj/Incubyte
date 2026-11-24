@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiClient, ApiError, apiBaseUrl, toBase64 } from "./client.js";
+import { ApiClient, ApiError, apiBaseUrl } from "../../src/api/client.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -20,9 +20,9 @@ function fakeFetch(response: Response) {
 
 function clientWith(
   fetch: ReturnType<typeof fakeFetch>["fetch"],
-  token: string | null = "dG9rZW4=",
+  token: string | null = "session-token",
 ): ApiClient {
-  return new ApiClient({ authorization: () => token, fetch });
+  return new ApiClient({ token: () => token, fetch });
 }
 
 afterEach(() => {
@@ -30,14 +30,14 @@ afterEach(() => {
 });
 
 describe("ApiClient requests", () => {
-  it("sends the Basic authorization header and returns the parsed body", async () => {
+  it("sends the session token and returns the parsed body", async () => {
     const { fetch, calls } = fakeFetch(jsonResponse({ items: [], total: 0, page: 1, pageSize: 1 }));
 
     const page = await clientWith(fetch).listEmployees({ pageSize: 1 });
 
     expect(page.total).toBe(0);
     expect(calls[0]?.url).toBe("/api/employees?pageSize=1");
-    expect(new Headers(calls[0]?.init?.headers).get("Authorization")).toBe("Basic dG9rZW4=");
+    expect(new Headers(calls[0]?.init?.headers).get("Authorization")).toBe("Bearer session-token");
   });
 
   it("sends no authorization header when signed out", async () => {
@@ -125,23 +125,11 @@ describe("ApiClient errors", () => {
   });
 });
 
-describe("toBase64", () => {
-  it("encodes plain ASCII credentials", () => {
-    expect(toBase64("hr:secret")).toBe(Buffer.from("hr:secret").toString("base64"));
-  });
-
-  it("encodes non-Latin-1 characters as UTF-8", () => {
-    expect(toBase64("Müller:pässwörd")).toBe(
-      Buffer.from("Müller:pässwörd", "utf8").toString("base64"),
-    );
-  });
-});
-
 describe("hosting the API on another address", () => {
   it("sends requests to the configured API address", async () => {
     const { fetch, calls } = fakeFetch(jsonResponse({ items: [], total: 0, page: 1, pageSize: 1 }));
     const client = new ApiClient({
-      authorization: () => "dG9rZW4=",
+      token: () => "session-token",
       fetch,
       baseUrl: "https://api.example.test",
     });
@@ -151,16 +139,6 @@ describe("hosting the API on another address", () => {
     expect(calls[0]?.url).toBe("https://api.example.test/api/employees?pageSize=1");
   });
 
-  it("marks requests as coming from the app, so a 401 does not trigger the browser's own dialog", async () => {
-    const { fetch, calls } = fakeFetch(
-      jsonResponse({ countries: [], departments: [], levels: [] }),
-    );
-
-    await clientWith(fetch).reference();
-
-    expect(new Headers(calls[0]?.init?.headers).get("X-Requested-With")).toBe("XMLHttpRequest");
-  });
-
   it.each([
     [{ VITE_API_BASE_URL: "https://api.example.test/" }, "https://api.example.test"],
     [{ VITE_API_BASE_URL: "  https://api.example.test//  " }, "https://api.example.test"],
@@ -168,5 +146,42 @@ describe("hosting the API on another address", () => {
     [{}, ""],
   ])("reads the API address from %j", (env, expected) => {
     expect(apiBaseUrl(env)).toBe(expected);
+  });
+});
+
+describe("sessions", () => {
+  it("signs in without a token and returns the new session", async () => {
+    const { fetch, calls } = fakeFetch(
+      jsonResponse({ token: "new-token", expiresAt: "2026-11-25T00:00:00Z", user: {} }, 201),
+    );
+
+    const session = await clientWith(fetch, null).signIn({ email: "a@b.test", password: "pw" });
+
+    expect(session.token).toBe("new-token");
+    expect(calls[0]?.url).toBe("/api/session");
+    expect(calls[0]?.init?.method).toBe("POST");
+    expect(new Headers(calls[0]?.init?.headers).get("Authorization")).toBeNull();
+  });
+
+  it("reports an expired session so the app can sign out", async () => {
+    const { fetch } = fakeFetch(
+      jsonResponse({ error: { code: "UNAUTHORIZED", message: "Sign in to continue" } }, 401),
+    );
+    const onUnauthorized = vi.fn();
+    const client = new ApiClient({ token: () => "expired", fetch, onUnauthorized });
+
+    await expect(client.reference()).rejects.toBeInstanceOf(ApiError);
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not treat a wrong password at sign-in as an expired session", async () => {
+    const { fetch } = fakeFetch(
+      jsonResponse({ error: { code: "INVALID_CREDENTIALS", message: "Incorrect" } }, 401),
+    );
+    const onUnauthorized = vi.fn();
+    const client = new ApiClient({ token: () => null, fetch, onUnauthorized });
+
+    await expect(client.signIn({ email: "a@b.test", password: "x" })).rejects.toThrow();
+    expect(onUnauthorized).not.toHaveBeenCalled();
   });
 });

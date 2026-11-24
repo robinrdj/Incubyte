@@ -1,7 +1,6 @@
 import { ActionIcon, Tooltip, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
 import { IconMoon, IconSun } from "@tabler/icons-react";
 
-/** Switches between light and dark mode. Mantine remembers the choice in local storage. */
 export function ColorSchemeToggle(): React.JSX.Element {
   const { setColorScheme } = useMantineColorScheme();
   const computed = useComputedColorScheme("light", { getInitialValueInEffect: true });

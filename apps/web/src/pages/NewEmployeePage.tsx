@@ -1,4 +1,5 @@
 import { Alert, Card, Loader, Stack } from "@mantine/core";
+import { IconUserPlus } from "@tabler/icons-react";
 import type { CreateEmployeeRequest } from "@salary/shared";
 import { useState } from "react";
 import { useNavigate } from "react-router";
@@ -8,7 +9,6 @@ import { EmployeeForm, type EmployeeFormValues } from "../components/EmployeeFor
 import { useAsync } from "../hooks/useAsync.js";
 import { errorMessage } from "../lib/errors.js";
 
-/** Creates an employee with an opening salary, then opens their profile. */
 export function NewEmployeePage(): React.JSX.Element {
   const { api } = useAuth();
   const navigate = useNavigate();
@@ -48,6 +48,7 @@ export function NewEmployeePage(): React.JSX.Element {
   return (
     <Stack gap="lg">
       <PageHeader
+        icon={IconUserPlus}
         title="Add employee"
         description="Creates the employee with an opening salary. Later changes are added to their salary history."
       />
