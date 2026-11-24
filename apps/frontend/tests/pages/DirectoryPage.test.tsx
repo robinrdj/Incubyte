@@ -341,3 +341,23 @@ describe("layout", () => {
     });
   });
 });
+
+describe("employee count", () => {
+  it("breaks the total down into active and leaving", async () => {
+    installFakeApi([
+      { method: "GET", path: "/api/reference", body: REFERENCE },
+      {
+        method: "GET",
+        path: "/api/employees",
+        body: { ...page([ADA, GRACE], 10001), statusCounts: { ACTIVE: 9519, LEAVING: 482 } },
+      },
+      { method: "GET", path: "/api/analytics/band-violations", body: bandReport() },
+    ]);
+
+    renderAt("/employees", <DirectoryPage />);
+
+    expect(await screen.findByLabelText("Employee count")).toHaveTextContent(
+      "10,001 employees · 9,519 active · 482 leaving",
+    );
+  });
+});

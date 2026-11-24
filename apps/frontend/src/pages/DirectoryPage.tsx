@@ -107,6 +107,7 @@ export function DirectoryPage(): React.JSX.Element {
 
   const rows: EmployeeDto[] = directory.data?.items ?? [];
   const total = directory.data?.total ?? 0;
+  const statusCounts = directory.data?.statusCounts;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const first = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const last = Math.min(page * PAGE_SIZE, total);
@@ -131,11 +132,7 @@ export function DirectoryPage(): React.JSX.Element {
       <PageHeader
         icon={IconUsers}
         title="Employees"
-        description={
-          directory.data === undefined
-            ? "Everyone on the payroll, with their current salary and pay band."
-            : `${total.toLocaleString("en-US")} ${total === 1 ? "person matches" : "people match"} these filters.`
-        }
+        description="Everyone on the payroll, with their current salary and pay band."
         actions={
           <>
             <Button
@@ -233,8 +230,18 @@ export function DirectoryPage(): React.JSX.Element {
             py="xs"
             style={{ borderBottom: "1px solid var(--mantine-color-default-border)" }}
           >
-            <Text size="sm" c="dimmed">
-              {total.toLocaleString("en-US")} {total === 1 ? "employee" : "employees"}
+            <Text size="sm" c="dimmed" data-numeric aria-label="Employee count">
+              <Text span fw={600} c="var(--mantine-color-text)">
+                {total.toLocaleString("en-US")} {total === 1 ? "employee" : "employees"}
+              </Text>
+              {statusCounts !== undefined && (
+                <>
+                  {" · "}
+                  {statusCounts.ACTIVE.toLocaleString("en-US")} active
+                  {" · "}
+                  {statusCounts.LEAVING.toLocaleString("en-US")} leaving
+                </>
+              )}
             </Text>
             <SegmentedControl
               size="xs"

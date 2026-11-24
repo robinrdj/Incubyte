@@ -7,13 +7,13 @@ import type {
   CreateEmployeeRequest,
   CreateHrUserRequest,
   EmployeeDto,
+  EmployeeListDto,
   EmploymentStatus,
   FxRateDto,
   FxRateListDto,
   GroupBy,
   HrUserDto,
   ImportReportDto,
-  Page,
   PayBandDto,
   ReferenceDataDto,
   SalaryChangeRequest,
@@ -103,7 +103,7 @@ export class ApiClient {
     return this.getJson("/api/reference");
   }
 
-  listEmployees(query: EmployeeListQuery = {}): Promise<Page<EmployeeDto>> {
+  listEmployees(query: EmployeeListQuery = {}): Promise<EmployeeListDto> {
     return this.getJson(`/api/employees${toQueryString({ ...query })}`);
   }
 

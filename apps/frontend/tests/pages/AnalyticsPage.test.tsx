@@ -58,6 +58,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** The out-of-band list is on the second tab. */
+async function openPayBands(): Promise<void> {
+  await userEvent.setup().click(await screen.findByRole("tab", { name: "Pay bands" }));
+}
+
 describe("analytics dashboard", () => {
   it("shows the overall figures in US dollars", async () => {
     renderAt("/analytics", <AnalyticsPage />);
@@ -113,6 +118,8 @@ describe("analytics dashboard", () => {
 
     renderAt("/analytics", <AnalyticsPage />);
 
+    await openPayBands();
+
     const table = await screen.findByRole("table", { name: "Employees outside their pay band" });
     expect(within(table).getByRole("link", { name: "Grace Hopper" })).toHaveAttribute(
       "href",
@@ -124,6 +131,7 @@ describe("analytics dashboard", () => {
 
   it("says so when everyone evaluated is within their band", async () => {
     renderAt("/analytics", <AnalyticsPage />);
+    await openPayBands();
     expect(await screen.findByText("Everyone evaluated is within their band.")).toBeInTheDocument();
   });
 
@@ -287,6 +295,7 @@ describe("employees outside their band", () => {
         <Route path="/employees/:id" element={<p>Profile of employee 7</p>} />
       </Routes>,
     );
+    await openPayBands();
     const table = await screen.findByRole("table", { name: "Employees outside their pay band" });
 
     await user.click(within(table).getByText("1.40"));
@@ -307,6 +316,8 @@ describe("employees outside their band", () => {
     ]);
     const user = userEvent.setup();
     renderAt("/analytics", <AnalyticsPage />);
+
+    await openPayBands();
 
     const table = await screen.findByRole("table", { name: "Employees outside their pay band" });
     expect(names(table)).toHaveLength(BAND_PAGE_SIZE);
@@ -332,6 +343,7 @@ describe("employees outside their band", () => {
     ]);
     const user = userEvent.setup();
     renderAt("/analytics", <AnalyticsPage />);
+    await openPayBands();
     await screen.findByRole("table", { name: "Employees outside their pay band" });
 
     await user.click(screen.getByText("Below 1"));
@@ -377,5 +389,32 @@ describe("exporting analytics", () => {
     const params = new URL(request?.url ?? "", "http://x").searchParams;
     expect(params.get("groupBy")).toBe("country");
     expect(params.get("asOf")).toBe("2026-11-23");
+  });
+});
+
+describe("explaining the numbers", () => {
+  it("says the headcount counts active employees only, and how many are leaving", async () => {
+    installFakeApi([
+      {
+        method: "GET",
+        path: "/api/analytics/compensation",
+        body: { ...COMPENSATION, excludedLeaving: 482 },
+      },
+      { method: "GET", path: "/api/analytics/band-violations", body: bandReport() },
+    ]);
+
+    renderAt("/analytics", <AnalyticsPage />);
+
+    expect(await screen.findByRole("group", { name: "Headcount" })).toHaveTextContent(
+      "Active only · 482 leaving not counted",
+    );
+  });
+
+  it("shows pay by group first, with pay bands on a second tab", async () => {
+    renderAt("/analytics", <AnalyticsPage />);
+
+    expect(await screen.findByRole("tab", { name: "Pay by group", selected: true })).toBeVisible();
+    await openPayBands();
+    expect(await screen.findByText("Everyone evaluated is within their band.")).toBeVisible();
   });
 });

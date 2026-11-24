@@ -13,6 +13,7 @@ import {
   Skeleton,
   Stack,
   Table,
+  Tabs,
   Text,
   TextInput,
   ThemeIcon,
@@ -25,6 +26,7 @@ import {
   IconArrowUpRight,
   IconChartBar,
   IconMathAvg,
+  IconScale,
   IconUsers,
 } from "@tabler/icons-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -56,6 +58,7 @@ export function AnalyticsPage(): React.JSX.Element {
   const { api } = useAuth();
   const [groupBy, setGroupBy] = useState<GroupBy>("country");
   const [asOf, setAsOf] = useState("");
+  const [tab, setTab] = useState<"pay" | "bands">("pay");
 
   // Each grouping costs a full pass over the salaries, so results are kept per grouping and date.
   // Switching back is instant, and the other groupings are fetched once the first one has loaded.
@@ -95,16 +98,18 @@ export function AnalyticsPage(): React.JSX.Element {
         description="Active employees, in US dollars at the exchange rate in force on the chosen date."
         actions={
           <>
-            <Select
-              label="Group by"
-              data={GROUP_OPTIONS}
-              value={groupBy}
-              onChange={(value) => {
-                setGroupBy(value ?? "country");
-              }}
-              allowDeselect={false}
-              w={170}
-            />
+            {tab === "pay" && (
+              <Select
+                label="Group by"
+                data={GROUP_OPTIONS}
+                value={groupBy}
+                onChange={(value) => {
+                  setGroupBy(value ?? "country");
+                }}
+                allowDeselect={false}
+                w={170}
+              />
+            )}
             <TextInput
               label="As of (optional)"
               type="date"
@@ -128,25 +133,49 @@ export function AnalyticsPage(): React.JSX.Element {
         }
       />
 
-      {compensation.error !== null && (
-        <Alert
-          color="red"
-          role="alert"
-          variant="light"
-          title="The analytics could not be calculated"
-        >
-          {errorMessage(compensation.error)}
-        </Alert>
-      )}
+      {/* Both tabs stay mounted and are hidden with CSS, so switching never reloads them. */}
+      <Tabs
+        value={tab}
+        onChange={(value) => {
+          setTab(value === "bands" ? "bands" : "pay");
+        }}
+        variant="pills"
+        keepMountedMode="display-none"
+      >
+        <Tabs.List>
+          <Tabs.Tab value="pay" leftSection={<IconChartBar size={16} />}>
+            Pay by group
+          </Tabs.Tab>
+          <Tabs.Tab value="bands" leftSection={<IconScale size={16} />}>
+            Pay bands
+          </Tabs.Tab>
+        </Tabs.List>
 
-      {compensation.data === undefined ? (
-        compensation.loading && <CompensationSkeleton />
-      ) : (
-        <CompensationView report={compensation.data} updating={updating} />
-      )}
+        <Tabs.Panel value="pay" pt="lg">
+          <Stack gap="lg">
+            {compensation.error !== null && (
+              <Alert
+                color="red"
+                role="alert"
+                variant="light"
+                title="The analytics could not be calculated"
+              >
+                {errorMessage(compensation.error)}
+              </Alert>
+            )}
+            {compensation.data === undefined ? (
+              compensation.loading && <CompensationSkeleton />
+            ) : (
+              <CompensationView report={compensation.data} updating={updating} />
+            )}
+          </Stack>
+        </Tabs.Panel>
 
-      {/* Keyed by date, so a new date starts again at page 1 with no filter. */}
-      <BandViolationsCard key={asOf} asOf={asOf} />
+        <Tabs.Panel value="bands" pt="lg">
+          {/* Keyed by date, so a new date starts again at page 1 with no filter. */}
+          <BandViolationsCard key={asOf} asOf={asOf} />
+        </Tabs.Panel>
+      </Tabs>
     </Stack>
   );
 }
@@ -172,6 +201,11 @@ function CompensationView({
           label="Headcount"
           value={report.overall.headcount.toLocaleString("en-US")}
           icon={IconUsers}
+          note={
+            report.excludedLeaving > 0
+              ? `Active only · ${report.excludedLeaving.toLocaleString("en-US")} leaving not counted`
+              : "Active employees"
+          }
         />
         <Stat label="Median" value={money(report.overall.medianUsd)} icon={IconChartBar} />
         <Stat label="Average" value={money(report.overall.averageUsd)} icon={IconMathAvg} />
@@ -438,10 +472,12 @@ function Stat({
   label,
   value,
   icon: Icon,
+  note,
 }: {
   label: string;
   value: string;
   icon: typeof IconUsers;
+  note?: string;
 }): React.JSX.Element {
   return (
     <Card padding="md" role="group" aria-label={label}>
@@ -457,6 +493,11 @@ function Stat({
         <Text fz={22} fw={700} lh={1.3}>
           {value}
         </Text>
+        {note !== undefined && (
+          <Text size="xs" c="dimmed" mt={2}>
+            {note}
+          </Text>
+        )}
       </Box>
     </Card>
   );
