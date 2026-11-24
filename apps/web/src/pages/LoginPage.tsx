@@ -79,7 +79,7 @@ export function LoginPage({
         p={48}
         style={{
           background:
-            "linear-gradient(145deg, var(--mantine-color-indigo-7), var(--mantine-color-violet-8))",
+            "radial-gradient(circle at 15% 10%, rgb(255 255 255 / 0.14), transparent 45%), linear-gradient(145deg, var(--mantine-color-brand-7), var(--mantine-color-violet-9))",
           color: "var(--mantine-color-white)",
         }}
       >
@@ -166,7 +166,7 @@ export function LoginPage({
           {demo !== null && (
             <Paper withBorder p="md" aria-label="Demo account">
               <Group gap="xs" mb="xs">
-                <IconSparkles size={18} color="var(--mantine-color-indigo-5)" aria-hidden="true" />
+                <IconSparkles size={18} color="var(--mantine-color-brand-5)" aria-hidden="true" />
                 <Text fw={600} size="sm">
                   Demo account
                 </Text>

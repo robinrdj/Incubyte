@@ -1,5 +1,6 @@
-import "@fontsource-variable/inter";
+import "@fontsource-variable/plus-jakarta-sans";
 import "@mantine/core/styles.css";
+import "./styles.css";
 import { MantineProvider } from "@mantine/core";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

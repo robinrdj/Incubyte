@@ -153,7 +153,7 @@ export function EmployeePage(): React.JSX.Element {
                 <Badge color="gray" ff="monospace">
                   {current.employeeCode}
                 </Badge>
-                <Badge color="indigo" variant="outline">
+                <Badge color="brand" variant="outline">
                   {current.level.code}
                 </Badge>
                 {current.status === "LEAVING" && <Badge color="gray">Leaving</Badge>}

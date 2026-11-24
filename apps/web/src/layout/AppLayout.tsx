@@ -39,7 +39,7 @@ export function BrandMark(): React.JSX.Element {
         size={36}
         radius="md"
         variant="gradient"
-        gradient={{ from: "indigo", to: "violet", deg: 135 }}
+        gradient={{ from: "brand", to: "violet", deg: 135 }}
         aria-hidden="true"
       >
         <IconWallet size={20} stroke={1.8} />
@@ -83,21 +83,6 @@ export function AppLayout(): React.JSX.Element {
           </Group>
           <Group gap="sm" wrap="nowrap">
             <ColorSchemeToggle />
-            {email !== null && (
-              <Group gap="xs" wrap="nowrap" visibleFrom="md">
-                <Avatar color="indigo" radius="xl" size="md">
-                  {email.slice(0, 2).toUpperCase()}
-                </Avatar>
-                <div>
-                  <Text size="sm" fw={500} lh={1.2}>
-                    HR Manager
-                  </Text>
-                  <Text size="xs" c="dimmed" lh={1.2}>
-                    {email}
-                  </Text>
-                </div>
-              </Group>
-            )}
             <Tooltip label="Sign out">
               <ActionIcon
                 variant="default"
@@ -114,10 +99,18 @@ export function AppLayout(): React.JSX.Element {
       </AppShell.Header>
 
       <AppShell.Navbar p="md" aria-label="Main navigation">
-        <Text size="xs" fw={600} c="dimmed" tt="uppercase" px="sm" mb="xs">
+        <Text
+          size="xs"
+          fw={600}
+          c="dimmed"
+          tt="uppercase"
+          px="sm"
+          mb="xs"
+          style={{ letterSpacing: "0.06em" }}
+        >
           Workspace
         </Text>
-        <Stack gap={4}>
+        <Stack gap={4} style={{ flex: 1 }}>
           {SECTIONS.map((section) => (
             <NavLink
               key={section.to}
@@ -130,9 +123,35 @@ export function AppLayout(): React.JSX.Element {
               variant="light"
               style={{ borderRadius: "var(--mantine-radius-md)" }}
               fw={500}
+              py={10}
             />
           ))}
         </Stack>
+        {email !== null && (
+          <Group
+            gap="sm"
+            wrap="nowrap"
+            p="sm"
+            mt="md"
+            style={{
+              border: "1px solid var(--mantine-color-default-border)",
+              borderRadius: "var(--mantine-radius-md)",
+              background: "var(--app-page-bg)",
+            }}
+          >
+            <Avatar color="brand" radius="xl" size="sm">
+              {email.slice(0, 2).toUpperCase()}
+            </Avatar>
+            <div style={{ minWidth: 0 }}>
+              <Text size="sm" fw={600} lh={1.2}>
+                HR Manager
+              </Text>
+              <Text size="xs" c="dimmed" lh={1.2} truncate>
+                {email}
+              </Text>
+            </div>
+          </Group>
+        )}
       </AppShell.Navbar>
 
       <AppShell.Main>

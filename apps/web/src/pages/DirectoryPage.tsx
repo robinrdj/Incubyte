@@ -289,7 +289,7 @@ export function DirectoryPage(): React.JSX.Element {
                     <Table.Td>{employee.country.name}</Table.Td>
                     <Table.Td>{employee.department.name}</Table.Td>
                     <Table.Td>
-                      <Badge color="indigo" variant="outline" size="sm">
+                      <Badge color="brand" variant="outline" size="sm">
                         {employee.level.code}
                       </Badge>
                     </Table.Td>

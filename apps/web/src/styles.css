@@ -1,0 +1,26 @@
+/* Small global touches the theme object cannot express. */
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tighter tracking on large headings reads as more refined at this weight. */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+/* Equal-width digits, so money and counts line up in columns and do not jiggle as they change. */
+.mantine-Table-td,
+.mantine-Badge-root,
+[data-numeric] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A translucent header that lets content scroll softly underneath. */
+.mantine-AppShell-header {
+  background: color-mix(in srgb, var(--mantine-color-body) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(10px);
+}

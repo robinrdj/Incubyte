@@ -38,7 +38,7 @@ export function MedianBars({ bars }: { bars: MedianBar[] }): React.JSX.Element {
                   height: 12,
                   borderRadius: 4,
                   background:
-                    "linear-gradient(90deg, var(--mantine-color-indigo-filled), var(--mantine-color-violet-filled))",
+                    "linear-gradient(90deg, var(--mantine-color-brand-filled), var(--mantine-color-violet-filled))",
                 }}
               />
             </Box>
