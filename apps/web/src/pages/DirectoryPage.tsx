@@ -17,12 +17,17 @@ import { useDebouncedValue } from "@mantine/hooks";
 import type { EmployeeDto, EmploymentStatus } from "@salary/shared";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
+import type { EmployeeListQuery } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.js";
 import { BandBadge } from "../components/BandBadge.js";
 import { useAsync } from "../hooks/useAsync.js";
+import { downloadCsv } from "../lib/download.js";
+import { errorMessage } from "../lib/errors.js";
 import { formatMoney } from "../lib/format.js";
 
 export const PAGE_SIZE = 25;
+
+type EmployeeFilters = Omit<EmployeeListQuery, "page" | "pageSize">;
 
 const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
@@ -44,26 +49,35 @@ export function DirectoryPage(): React.JSX.Element {
   const reference = useAsync(() => api.reference(), []);
   const bands = useAsync(() => api.bandViolations(), []);
 
+  /** The filters as the list applies them. The export uses the same object, so they always match. */
+  const filters: EmployeeFilters = {
+    ...(debouncedSearch === "" ? {} : { search: debouncedSearch }),
+    ...(countryCode === null ? {} : { countryCode }),
+    ...(departmentName === null ? {} : { departmentName }),
+    ...(levelCode === null ? {} : { levelCode }),
+    ...(status === "" ? {} : { status: status as EmploymentStatus }),
+  };
+
   const directory = useAsync(
-    (
-      term: string,
-      country: string,
-      department: string,
-      level: string,
-      state: string,
-      pageNumber: number,
-    ) =>
-      api.listEmployees({
-        ...(term === "" ? {} : { search: term }),
-        ...(country === "" ? {} : { countryCode: country }),
-        ...(department === "" ? {} : { departmentName: department }),
-        ...(level === "" ? {} : { levelCode: level }),
-        ...(state === "" ? {} : { status: state as EmploymentStatus }),
-        page: pageNumber,
-        pageSize: PAGE_SIZE,
-      }),
-    [debouncedSearch, countryCode ?? "", departmentName ?? "", levelCode ?? "", status, page],
+    (query: EmployeeFilters, pageNumber: number) =>
+      api.listEmployees({ ...query, page: pageNumber, pageSize: PAGE_SIZE }),
+    [filters, page],
   );
+
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  async function exportFiltered(): Promise<void> {
+    setExporting(true);
+    setExportError(null);
+    try {
+      downloadCsv("employees.csv", await api.exportCsv(filters));
+    } catch (caught) {
+      setExportError(errorMessage(caught));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const bandByEmployee = useMemo(
     () => new Map((bands.data?.items ?? []).map((item) => [item.employeeId, item.position])),
@@ -93,10 +107,26 @@ export function DirectoryPage(): React.JSX.Element {
     <Stack>
       <Group justify="space-between" wrap="wrap">
         <Title order={2}>Employees</Title>
-        <Button component={Link} to="/employees/new">
-          Add employee
-        </Button>
+        <Group gap="sm">
+          <Button
+            variant="default"
+            onClick={() => void exportFiltered()}
+            loading={exporting}
+            disabled={total === 0}
+          >
+            Export CSV
+          </Button>
+          <Button component={Link} to="/employees/new">
+            Add employee
+          </Button>
+        </Group>
       </Group>
+
+      {exportError !== null && (
+        <Alert color="red" role="alert" variant="light" title="The export failed">
+          {exportError}
+        </Alert>
+      )}
 
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }}>
         <TextInput
