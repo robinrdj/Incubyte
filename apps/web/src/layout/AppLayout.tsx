@@ -7,6 +7,7 @@ const SECTIONS = [
   { to: "/employees", label: "Employees" },
   { to: "/analytics", label: "Analytics" },
   { to: "/data-exchange", label: "Import and export" },
+  { to: "/settings", label: "Settings" },
 ] as const;
 
 /** Header, navigation, and the page area. On phones the navigation collapses behind the burger. */

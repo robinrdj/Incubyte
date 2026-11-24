@@ -6,12 +6,17 @@ import type {
   CreateEmployeeRequest,
   EmployeeDto,
   EmploymentStatus,
+  FxRateDto,
+  FxRateListDto,
   GroupBy,
   ImportReportDto,
   Page,
+  PayBandDto,
   ReferenceDataDto,
   SalaryChangeRequest,
   SalaryDto,
+  SaveFxRateRequest,
+  SavePayBandRequest,
   UpdateEmployeeRequest,
 } from "@salary/shared";
 
@@ -118,11 +123,32 @@ export class ApiClient {
     return this.requestText(`/api/employees/export.csv${toQueryString({ ...filters })}`);
   }
 
+  fxRates(): Promise<FxRateListDto> {
+    return this.getJson("/api/settings/fx-rates");
+  }
+
+  saveFxRate(body: SaveFxRateRequest): Promise<FxRateDto> {
+    return this.sendJson("PUT", "/api/settings/fx-rates", body);
+  }
+
+  payBands(): Promise<{ items: PayBandDto[] }> {
+    return this.getJson("/api/settings/pay-bands");
+  }
+
+  savePayBand(
+    countryCode: string,
+    levelCode: string,
+    body: SavePayBandRequest,
+  ): Promise<PayBandDto> {
+    const path = `/api/settings/pay-bands/${encodeURIComponent(countryCode)}/${encodeURIComponent(levelCode)}`;
+    return this.sendJson("PUT", path, body);
+  }
+
   private getJson<T>(path: string): Promise<T> {
     return this.request<T>("GET", path);
   }
 
-  private sendJson<T>(method: "POST" | "PATCH", path: string, body: unknown): Promise<T> {
+  private sendJson<T>(method: "POST" | "PATCH" | "PUT", path: string, body: unknown): Promise<T> {
     return this.request<T>(method, path, { jsonBody: body });
   }
 
