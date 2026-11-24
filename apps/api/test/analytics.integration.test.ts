@@ -386,6 +386,57 @@ describe("pay band violations (fixed fixture)", () => {
   });
 });
 
+describe("narrowing and paging the band report", () => {
+  beforeEach(seedFixture);
+
+  async function idOf(employeeCode: string): Promise<string> {
+    const employee = await prisma.employee.findUniqueOrThrow({ where: { employeeCode } });
+    return employee.id;
+  }
+
+  const codes = (body: { items: { employeeCode: string }[] }): string[] =>
+    body.items.map((item) => item.employeeCode);
+
+  it("reports on only the given employees, for a directory page or a profile", async () => {
+    const ids = [await idOf("EMP-000001"), await idOf("EMP-000002")];
+
+    const response = await getJson(
+      `/api/analytics/band-violations?asOf=2026-11-23&employeeIds=${ids.join(",")}`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body.evaluated).toBe(2);
+    expect(codes(response.body)).toEqual(["EMP-000002"]);
+  });
+
+  it("filters by position while still counting both sides", async () => {
+    const response = await getJson("/api/analytics/band-violations?asOf=2026-11-23&position=BELOW");
+
+    expect(codes(response.body)).toEqual(["EMP-000005"]);
+    expect(response.body).toMatchObject({ below: 1, above: 1, total: 1 });
+  });
+
+  it("returns one page at a time, furthest from the band first", async () => {
+    const first = await getJson("/api/analytics/band-violations?asOf=2026-11-23&page=1&pageSize=1");
+    const second = await getJson(
+      "/api/analytics/band-violations?asOf=2026-11-23&page=2&pageSize=1",
+    );
+
+    expect(codes(first.body)).toEqual(["EMP-000002"]);
+    expect(codes(second.body)).toEqual(["EMP-000005"]);
+    expect(first.body).toMatchObject({ total: 2, page: 1, pageSize: 1 });
+  });
+
+  it.each([
+    ["an id that is not a UUID", "employeeIds=not-an-id"],
+    ["a page larger than 100", "pageSize=101"],
+    ["an unknown position", "position=WITHIN"],
+  ])("rejects %s", async (_name, query) => {
+    const response = await getJson(`/api/analytics/band-violations?${query}`);
+    expect(response.status).toBe(400);
+  });
+});
+
 describe("analytics error handling", () => {
   it("fails clearly, naming the currency, when an FX rate is missing", async () => {
     await seedFixture();
