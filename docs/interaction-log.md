@@ -582,3 +582,42 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 - A test looked up the searchable Country select by the wrong role. Fixed.
 
 **Not verified:** in a real browser, as before.
+
+---
+
+## 2026-11-24 — Stage 9c: Modern look, email sign-in, better seed names, band editing
+
+**User request:** After testing the app in a browser, the user asked for these changes:
+
+- The styling looks old. Make it modern, with light and dark mode.
+- Sign in with an email instead of a username, and show the sample email and password on the login page.
+- The seed data repeats names a lot, especially "Allen". Replace it.
+- Pay bands need an Edit button, rather than expecting HR to change a value before Save turns on.
+
+**Design decisions:**
+
+- **Seed names by region.** The old generator used 30 first and 30 last names, mostly famous computer scientists. That is 900 combinations for 10,000 people, so each full name appeared about 11 times. Each country now draws from a pool for its region (English-speaking, Indian, German, French, Dutch, Singaporean, Brazilian), and the generator redraws a full name that is already taken. Result: all 10,000 full names are unique, and the most common surname (Singh) covers 0.76% of employees. The output is still the same for the same seed.
+- **Email sign-in.** `BASIC_AUTH_USER` and `BASIC_AUTH_PASSWORD` were renamed `HR_EMAIL` and `HR_PASSWORD`. The config requires a valid email and stores it in lower case. The web app lower-cases what is typed, so "HR.Manager@ACME.test" still signs in. The audit trail now records the email as the actor.
+- **Demo credentials are configuration, not code.** The sign-in page shows a demo account only when `VITE_DEMO_EMAIL` and `VITE_DEMO_PASSWORD` are set at build time. Locally they live in the gitignored `apps/web/.env.local`, so the password is not in the repository. A deployment with real salaries leaves them empty. Showing a password publicly is acceptable here only because the data is generated.
+- **Theme.** Mantine theme with an indigo accent, the Inter font (bundled, no CDN), rounded cards with soft borders, uppercase table headers, and a page background a step away from the cards. Every colour comes from the palette, so dark mode follows from it. The header has a brand mark, a light/dark toggle, the signed-in email, and sign-out. The navigation has icons. The sign-in page is split into a brand panel and the form.
+- **Light and dark mode.** The app follows the system setting until the user picks one, and Mantine remembers the choice. A small script in `index.html` applies the scheme before React loads, so dark mode does not flash white. The median bars had fixed grey and blue colours, and now use theme variables.
+- **Pay band editing.** Each row shows its band as formatted amounts, with **Edit**, or **Add band** if the level has none. Edit turns the row into inputs with **Save** and **Cancel**. Save is enabled at once. Saving unchanged values just closes the row without a request.
+
+**Verification:**
+
+- API: 138 unit tests (3 new for seed names, 4 new for config) and 92 integration tests pass.
+- Web: 84 tests pass, twice in a row. The new tests cover:
+  - email sign-in in any letter case, and an invalid email with no request sent
+  - the signed-in email in the header
+  - the demo hint hidden when not configured, and filling in the demo account
+  - band Edit, Save, Cancel, and closing unchanged without a request
+- The local database was reseeded. Through the web dev proxy, the demo account signs in (200), a search for "allen" finds 0 employees, and "smith" finds 49.
+
+**Problems and fixes during the stage:**
+
+- The analytics test found stat values through the DOM structure, which the new card layout changed. Each stat card is now a named group, which helps screen readers too, and the test finds it by name.
+- When I checked the login, the API returned 401 for the new account. An API process from my earlier test of the `dev` script was still holding port 4000 with the old login. I stopped it and restarted the API, and the login then worked.
+
+**Not verified:** the look in a real browser. The Chrome extension is not connected, so the new styling, dark mode, and phone layout have only run in tests.
+
+**Note for the user:** The directory is sorted by surname, so page 1 opens on a run of one surname ("Abdullah", from Singapore). Every full name is different, but a sorted page groups surnames.

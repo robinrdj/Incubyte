@@ -34,9 +34,13 @@ docker-compose.yml   Local PostgreSQL (development and test)
 
 ### Web app
 
+The app follows the system light or dark setting, and the toggle in the header switches it. The choice is remembered.
+
+**Demo account on the sign-in page.** Set `VITE_DEMO_EMAIL` and `VITE_DEMO_PASSWORD` in `apps/web/.env.local` (see `apps/web/.env.example`) to show a demo account with a "Use demo account" button. They must match the API's `HR_EMAIL` and `HR_PASSWORD`. Leave them empty for any deployment that holds real salaries, because the hint makes the password public.
+
 `npm run dev` in `apps/web` starts the Vite dev server on port 5173. It forwards `/api` to the API on port 4000 (override with `VITE_API_TARGET`), so no CORS setup is needed in development.
 
-Sign in with the HR username and password from `.env`. The session lasts for the browser tab only: reloading keeps you signed in, and closing the tab signs you out.
+Sign in with the HR email and password from `.env` (`HR_EMAIL`, `HR_PASSWORD`). The session lasts for the browser tab only: reloading keeps you signed in, and closing the tab signs you out.
 
 The API client (`src/api/client.ts`) is typed with the shared contract. A change to a response shape is a compile error in the web app.
 
@@ -116,7 +120,7 @@ Every `/api` route requires HTTP Basic authentication. `GET /health` is public.
 
 ### Seed data
 
-`npm run seed` (in `apps/api`) loads 10,000 reproducible employees across 10 countries, with reference data, default FX rates (two dates per currency), and a pay band for every level in every country. HR changes these on the **Settings** page. The same seed always produces the same data.
+`npm run seed` (in `apps/api`) loads 10,000 reproducible employees across 10 countries, with reference data, default FX rates (two dates per currency), and a pay band for every level in every country. Names come from a pool for each region, so a German office has German names, and no two employees share a full name. HR changes these on the **Settings** page. The same seed always produces the same data.
 
 | Command                    | Purpose                                                             |
 | -------------------------- | ------------------------------------------------------------------- |
@@ -141,4 +145,4 @@ Columns (header names are case-insensitive; unknown or missing required columns 
 Errors use one shape: `{ "error": { "code", "message", "details?" } }`.
 Status codes: 400 invalid input, 401 unauthenticated, 404 not found, 409 duplicate email or code, 422 business-rule violation.
 
-Environment variables (in `.env`): `DATABASE_URL`, `BASIC_AUTH_USER`, `BASIC_AUTH_PASSWORD` (at least 12 characters), and optionally `PORT` (default 4000).
+Environment variables (in `.env`): `DATABASE_URL`, `HR_EMAIL` (the sign-in email), `HR_PASSWORD` (at least 12 characters), and optionally `PORT` (default 4000).
