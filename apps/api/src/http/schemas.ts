@@ -103,3 +103,29 @@ export const bandViolationsQuerySchema = z.object({
 });
 
 export type CompensationQuery = z.infer<typeof compensationQuerySchema>;
+
+/** A positive decimal with up to 10 whole digits and 8 decimal places, matching the rate column. */
+const fxRateValue = z
+  .string()
+  .trim()
+  .regex(/^\d{1,10}(\.\d{1,8})?$/, "must be a positive number with up to 8 decimal places")
+  .refine((value) => Number(value) > 0, "must be greater than zero");
+
+export const saveFxRateSchema = z.object({
+  currency: currencyCode,
+  rate: fxRateValue,
+  rateDate: isoDate,
+});
+
+export const payBandKeySchema = z.object({
+  countryCode,
+  levelCode,
+});
+
+export const savePayBandSchema = z.object({
+  minAmount: moneyAmount,
+  maxAmount: moneyAmount,
+});
+
+export type SaveFxRateInput = z.infer<typeof saveFxRateSchema>;
+export type SavePayBandInput = z.infer<typeof savePayBandSchema>;

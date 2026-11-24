@@ -145,3 +145,38 @@ export interface ReferenceDataDto {
   departments: Array<{ name: string }>;
   levels: Array<{ code: string; rank: number }>;
 }
+
+/** One dated exchange rate: 1 unit of `currency` is worth `rate` units of the reporting currency. */
+export interface FxRateDto {
+  currency: string;
+  /** Decimal string with up to 8 places, for example "1.08500000". */
+  rate: string;
+  rateDate: string;
+}
+
+export interface FxRateListDto {
+  reportingCurrency: string;
+  /** Every stored rate, newest first within each currency. */
+  items: FxRateDto[];
+}
+
+/** Adds the rate for a currency on a date, or corrects the rate already stored for that date. */
+export interface SaveFxRateRequest {
+  currency: string;
+  rate: string;
+  rateDate: string;
+}
+
+/** Salary range for one level in one country, in the country's currency. */
+export interface PayBandDto {
+  countryCode: string;
+  levelCode: string;
+  currency: string;
+  minAmount: string;
+  maxAmount: string;
+}
+
+export interface SavePayBandRequest {
+  minAmount: string;
+  maxAmount: string;
+}

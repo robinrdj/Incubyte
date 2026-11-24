@@ -4,6 +4,7 @@ import { createApp } from "./http/app.js";
 import { AnalyticsService } from "./services/analytics-service.js";
 import { BulkExchangeService } from "./services/bulk-exchange-service.js";
 import { EmployeeService } from "./services/employee-service.js";
+import { SettingsService } from "./services/settings-service.js";
 
 const config = loadConfig(process.env);
 const prisma = createPrismaClient(config.DATABASE_URL);
@@ -13,6 +14,7 @@ const app = createApp({
   service: new EmployeeService(prisma, clock),
   analytics: new AnalyticsService(prisma, clock),
   bulk: new BulkExchangeService(prisma, clock),
+  settings: new SettingsService(prisma),
   credentials: { user: config.BASIC_AUTH_USER, password: config.BASIC_AUTH_PASSWORD },
 });
 

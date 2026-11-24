@@ -1,6 +1,7 @@
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/http/app.js";
+import { SettingsService } from "../src/services/settings-service.js";
 import type { PrismaClient } from "../src/generated/prisma/client.js";
 import { AnalyticsService } from "../src/services/analytics-service.js";
 import { BulkExchangeService } from "../src/services/bulk-exchange-service.js";
@@ -22,6 +23,7 @@ beforeAll(() => {
     service: new EmployeeService(prisma, () => FIXED_NOW),
     analytics: new AnalyticsService(prisma, () => FIXED_NOW),
     bulk: new BulkExchangeService(prisma, () => FIXED_NOW),
+    settings: new SettingsService(prisma),
     credentials: TEST_CREDENTIALS,
   });
 });
