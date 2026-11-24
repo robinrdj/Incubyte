@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installFakeApi } from "../test-utils/fakeApi.js";
 import { bandReport, renderAt, signedIn } from "../test-utils/render.js";
+import { Route, Routes } from "react-router";
 import { AnalyticsPage, BAND_PAGE_SIZE } from "./AnalyticsPage.js";
 
 const COMPENSATION = {
@@ -285,6 +286,23 @@ describe("employees outside their band", () => {
     await user.click(screen.getByRole("button", { name: "2" }));
 
     expect(names(table)).toEqual(["Person 5", "Person 4", "Person 3", "Person 2", "Person 1"]);
+  });
+
+  it("opens the employee's profile when their row is clicked", async () => {
+    install([violation(7, 1.4, "ABOVE")]);
+    const user = userEvent.setup();
+    renderAt(
+      "/analytics",
+      <Routes>
+        <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/employees/:id" element={<p>Profile of employee 7</p>} />
+      </Routes>,
+    );
+    const table = await screen.findByRole("table", { name: "Employees outside their pay band" });
+
+    await user.click(within(table).getByText("1.40"));
+
+    expect(await screen.findByText("Profile of employee 7")).toBeInTheDocument();
   });
 
   it("filters to people below their band", async () => {

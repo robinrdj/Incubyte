@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installFakeApi, type RecordedRequest } from "../test-utils/fakeApi.js";
 import { REFERENCE, bandReport, employee, renderAt, signedIn } from "../test-utils/render.js";
+import { Route, Routes } from "react-router";
 import { DirectoryPage } from "./DirectoryPage.js";
 
 const ADA = employee();
@@ -49,7 +50,7 @@ describe("employee directory", () => {
     renderAt("/employees", <DirectoryPage />);
 
     const table = await screen.findByRole("table", { name: "Employees" });
-    expect(within(table).getByRole("link", { name: "EMP-000001" })).toHaveAttribute(
+    expect(within(table).getByRole("link", { name: "Ada Lovelace" })).toHaveAttribute(
       "href",
       `/employees/${ADA.id}`,
     );
@@ -222,5 +223,61 @@ describe("exporting from the directory", () => {
 
     await screen.findByText("No employees match these filters.");
     expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+  });
+});
+
+describe("opening an employee", () => {
+  function renderWithProfileRoute(): void {
+    renderAt(
+      "/employees",
+      <Routes>
+        <Route path="/employees" element={<DirectoryPage />} />
+        <Route path="/employees/:id" element={<p>Profile page</p>} />
+      </Routes>,
+    );
+  }
+
+  beforeEach(() => {
+    installFakeApi([
+      { method: "GET", path: "/api/reference", body: REFERENCE },
+      { method: "GET", path: "/api/employees", body: page([ADA, GRACE]) },
+      { method: "GET", path: "/api/analytics/band-violations", body: bandReport() },
+    ]);
+  });
+
+  it("opens the profile when any part of the row is clicked", async () => {
+    const user = userEvent.setup();
+    renderWithProfileRoute();
+    const table = await screen.findByRole("table", { name: "Employees" });
+
+    await user.click(within(table).getByText("India"));
+
+    expect(await screen.findByText("Profile page")).toBeInTheDocument();
+  });
+
+  it("opens the profile from the name link, for keyboard users", async () => {
+    const user = userEvent.setup();
+    renderWithProfileRoute();
+    const table = await screen.findByRole("table", { name: "Employees" });
+
+    within(table).getByRole("link", { name: "Grace Hopper" }).focus();
+    await user.keyboard("{Enter}");
+
+    expect(await screen.findByText("Profile page")).toBeInTheDocument();
+  });
+
+  it("opens a new tab on Ctrl-click instead of leaving the directory", async () => {
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+    const user = userEvent.setup();
+    renderWithProfileRoute();
+    const table = await screen.findByRole("table", { name: "Employees" });
+
+    await user.keyboard("{Control>}");
+    await user.click(within(table).getByText("India"));
+    await user.keyboard("{/Control}");
+
+    expect(open).toHaveBeenCalledWith(`/employees/${GRACE.id}`, "_blank", "noopener");
+    expect(screen.getByRole("table", { name: "Employees" })).toBeInTheDocument();
+    open.mockRestore();
   });
 });
