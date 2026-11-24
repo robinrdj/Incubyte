@@ -37,10 +37,27 @@ function writeStoredToken(token: string | null): void {
   }
 }
 
+/** The email inside a Basic-auth token, or null if the token cannot be read. */
+export function emailFromToken(token: string): string | null {
+  try {
+    const bytes = Uint8Array.from(atob(token), (char) => char.charCodeAt(0));
+    const decoded = new TextDecoder().decode(bytes);
+    const separator = decoded.indexOf(":");
+    return separator > 0 ? decoded.slice(0, separator) : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface AuthContextValue {
   isSignedIn: boolean;
-  /** Verifies the credentials against the API, then starts the session. Throws ApiError if rejected. */
-  signIn: (username: string, password: string) => Promise<void>;
+  /** The signed-in HR email, for display. */
+  email: string | null;
+  /**
+   * Verifies the credentials against the API, then starts the session. Throws ApiError if rejected.
+   * The email is trimmed and lower-cased, so capitals typed on a phone keyboard still match.
+   */
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
   /** The API client, bound to the current session. */
   api: ApiClient;
@@ -58,8 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactElemen
   const api = useMemo(() => new ApiClient({ authorization: () => tokenRef.current }), []);
 
   const signIn = useCallback(
-    async (username: string, password: string): Promise<void> => {
-      const candidate = toBase64(`${username}:${password}`);
+    async (email: string, password: string): Promise<void> => {
+      const candidate = toBase64(`${email.trim().toLowerCase()}:${password}`);
       tokenRef.current = candidate;
       try {
         // A cheap authenticated call. It fails with 401 if the credentials are wrong.
@@ -81,7 +98,13 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactElemen
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ isSignedIn: token !== null, signIn, signOut, api }),
+    () => ({
+      isSignedIn: token !== null,
+      email: token === null ? null : emailFromToken(token),
+      signIn,
+      signOut,
+      api,
+    }),
     [token, signIn, signOut, api],
   );
 
