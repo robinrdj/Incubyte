@@ -19,7 +19,8 @@ A record of each visual design, so an earlier one can be restored on request. Th
   - The radius scale is slightly smaller (md 7 px, lg 13 px, xl 26 px, down from 8, 16, and 32).
   - The Employees page has a Table/Cards toggle above the list (table by default, remembered per browser).
   - The pay band column keeps its width, with a placeholder while loading and a dash within the band.
-- The font, palette, and shadows are unchanged from version 2.
+- **Typography (2026-11-25).** Plus Jakarta Sans was replaced with **Sora** for headings and the brand name, and **Geist** for body text, tables, and forms. Both are bundled with Fontsource. Geist keeps tabular figures in tables.
+- The palette and shadows are unchanged from version 2.
 
 ## Version 2: Indigo-violet with Plus Jakarta Sans (2026-11-24)
 

@@ -15,7 +15,7 @@ export function BrandMark({ size = "md" }: { size?: "md" | "lg" }): React.JSX.El
         <IconWallet size={large ? 24 : 20} stroke={1.8} />
       </ThemeIcon>
       <div>
-        <Text fw={700} size={large ? "lg" : "md"} lh={1.1}>
+        <Text fw={700} size={large ? "lg" : "md"} lh={1.1} ff="var(--mantine-font-family-headings)">
           Salary Management
         </Text>
         <Text size="xs" c="dimmed" lh={1.2}>

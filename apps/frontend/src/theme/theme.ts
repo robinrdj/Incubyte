@@ -9,8 +9,9 @@ import {
   type MantineColorsTuple,
 } from "@mantine/core";
 
-const FONT =
-  "'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+const BODY_FONT =
+  "'Geist Variable', Geist, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+const HEADING_FONT = "'Sora Variable', Sora, " + BODY_FONT;
 
 /** The accent: an indigo leaning towards violet, from lightest to darkest. */
 const brand: MantineColorsTuple = [
@@ -41,7 +42,7 @@ const dark: MantineColorsTuple = [
 ];
 
 /**
- * The app's look: Plus Jakarta Sans, a custom indigo-violet accent, soft layered shadows, rounded
+ * The app's look: Sora headings over Geist text, a custom indigo-violet accent, soft layered shadows, rounded
  * cards, and quiet tables. Every colour comes from the palette, so light and dark mode both follow.
  */
 export const theme = createTheme({
@@ -50,9 +51,9 @@ export const theme = createTheme({
   primaryShade: { light: 6, dark: 5 },
   defaultRadius: "md",
   radius: { xs: "2px", sm: "4px", md: "7px", lg: "13px", xl: "26px" },
-  fontFamily: FONT,
+  fontFamily: BODY_FONT,
   headings: {
-    fontFamily: FONT,
+    fontFamily: HEADING_FONT,
     fontWeight: "700",
     sizes: {
       h2: { fontSize: "1.75rem", lineHeight: "1.2" },

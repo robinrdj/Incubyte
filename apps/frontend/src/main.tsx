@@ -1,4 +1,5 @@
-import "@fontsource-variable/plus-jakarta-sans";
+import "@fontsource-variable/geist";
+import "@fontsource-variable/sora";
 import "@mantine/core/styles.css";
 import "./theme/global.css";
 import { MantineProvider } from "@mantine/core";
