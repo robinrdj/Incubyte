@@ -25,7 +25,6 @@ const payBandInclude = {
 const toDateOnly = (value: Date): string => value.toISOString().slice(0, 10);
 const fromDateOnly = (value: string): Date => new Date(`${value}T00:00:00.000Z`);
 
-/** Converts a DECIMAL(14,2) value to integer minor units. */
 const decimalToMinor = (value: Prisma.Decimal): MinorUnits => Math.round(value.toNumber() * 100);
 
 function toSummaryDto(summary: CompensationSummary): SummaryDto {
@@ -57,7 +56,6 @@ interface CurrentSalaryRow {
   readonly currency: string | null;
 }
 
-/** Converts a DECIMAL(14,2) text value from the database to integer minor units. */
 function amountToMinor(amount: string): MinorUnits {
   const parsed = parseMoney(amount);
   if (!parsed.ok) {
@@ -211,9 +209,9 @@ export class AnalyticsService {
       employeeIds === undefined
         ? Prisma.empty
         : Prisma.sql`AND e."id" = ANY(${[...employeeIds]}::uuid[])`;
-    // One query, with the current salary chosen in the database (DISTINCT ON the latest record on
-    // or before the date) and only the columns the analytics use. The ORM version made five
-    // queries and built a full object per employee, which took 6-7 s on a 0.1-CPU host.
+    // One query that picks each employee's current salary in the database (DISTINCT ON the latest
+    // record on or before the date) and returns only the columns the analytics use. Loading full
+    // ORM objects for 10,000 employees is too slow on a small host.
     const [rows, rates] = await Promise.all([
       this.db.$queryRaw<CurrentSalaryRow[]>`
         SELECT DISTINCT ON (e."id")

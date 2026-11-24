@@ -21,7 +21,6 @@ const employeeInclude = {
 
 type EmployeeRow = Prisma.EmployeeGetPayload<{ include: typeof employeeInclude }>;
 
-/** YYYY-MM-DD for a date-only column. */
 const toDateOnly = (value: Date): string => value.toISOString().slice(0, 10);
 
 const fromDateOnly = (value: string): Date => new Date(`${value}T00:00:00.000Z`);

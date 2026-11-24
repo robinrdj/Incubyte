@@ -9,7 +9,7 @@ import {
 } from "./schemas.js";
 import type { EmployeeService } from "../services/employee-service.js";
 
-/** Employee and salary endpoints. All routes assume the router is mounted behind authentication. */
+/** Employee and salary endpoints. Mounted behind requireSession. */
 export function createEmployeeRouter(service: EmployeeService): Router {
   const router = Router();
 

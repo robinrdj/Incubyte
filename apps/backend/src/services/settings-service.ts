@@ -9,7 +9,6 @@ import type { SaveFxRateInput, SavePayBandInput } from "../http/schemas.js";
 const toDateOnly = (value: Date): string => value.toISOString().slice(0, 10);
 const fromDateOnly = (value: string): Date => new Date(`${value}T00:00:00.000Z`);
 
-/** Converts a schema-validated amount to minor units. */
 function toMinor(amount: string): number {
   const parsed = parseMoney(amount);
   if (!parsed.ok) {
