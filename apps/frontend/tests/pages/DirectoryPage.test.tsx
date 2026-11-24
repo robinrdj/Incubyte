@@ -123,6 +123,7 @@ describe("employee directory", () => {
     renderAt("/employees", <DirectoryPage />);
     await screen.findByRole("table", { name: "Employees" });
 
+    await user.click(screen.getByRole("button", { name: /^filters/i }));
     await user.click(screen.getByLabelText(/^country/i));
     await user.click(await screen.findByText("India"));
 
@@ -201,6 +202,7 @@ describe("exporting from the directory", () => {
     renderAt("/employees", <DirectoryPage />);
     await screen.findByRole("table", { name: "Employees" });
 
+    await user.click(screen.getByRole("button", { name: /^filters/i }));
     await user.click(screen.getByLabelText(/^country/i));
     await user.click(await screen.findByText("India"));
     await user.click(screen.getByRole("button", { name: "Export CSV" }));
@@ -373,6 +375,7 @@ describe("choosing several values", () => {
     renderAt("/employees", <DirectoryPage />);
     await screen.findByRole("table", { name: "Employees" });
 
+    await user.click(screen.getByRole("button", { name: /^filters/i }));
     await user.click(screen.getByLabelText(/^country/i));
     await user.click(await screen.findByText("India"));
     await user.click(screen.getByLabelText(/^country/i));
