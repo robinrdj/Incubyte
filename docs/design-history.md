@@ -14,7 +14,12 @@ A record of each visual design, so an earlier one can be restored on request. Th
   - The navigation is grouped under **Workspace** (Employees, Analytics, Import and export) and **Administration** (Settings, HR users), on a slightly lighter sidebar.
   - The header has the brand mark, the theme toggle, and an account menu (avatar, name, and email, opening to HR users and Sign out). This replaces the account card and the separate sign-out button.
 - **Pages.** Every page header has an icon tile beside the title. A new HR users page has a table of users and an add-user dialog.
-- The theme (font, palette, shadows) is unchanged from version 2.
+- **Refinements (2026-11-25).**
+  - The sign-in page fits the screen height (`100dvh`, no page scroll), and the sign-in card has `md` corners.
+  - The radius scale is slightly smaller (md 7 px, lg 13 px, xl 26 px, down from 8, 16, and 32).
+  - The Employees page has a Table/Cards toggle above the list (table by default, remembered per browser).
+  - The pay band column keeps its width, with a placeholder while loading and a dash within the band.
+- The font, palette, and shadows are unchanged from version 2.
 
 ## Version 2: Indigo-violet with Plus Jakarta Sans (2026-11-24)
 
