@@ -180,3 +180,47 @@ describe("employee directory", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("could not be loaded");
   });
 });
+
+describe("exporting from the directory", () => {
+  it("exports exactly the employees the current filters show", async () => {
+    const createObjectURL = vi.fn(() => "blob:test");
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = vi.fn();
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    recorded = installFakeApi([
+      { method: "GET", path: "/api/reference", body: REFERENCE },
+      { method: "GET", path: "/api/employees", body: page([ADA]) },
+      { method: "GET", path: "/api/employees/export.csv", body: "employeeCode\r\nEMP-000002\r\n" },
+      { method: "GET", path: "/api/analytics/band-violations", body: bandReport() },
+    ]);
+    const user = userEvent.setup();
+    renderAt("/employees", <DirectoryPage />);
+    await screen.findByRole("table", { name: "Employees" });
+
+    await user.click(screen.getByRole("combobox", { name: /^country/i }));
+    await user.click(await screen.findByText("India"));
+    await user.click(screen.getByRole("button", { name: "Export CSV" }));
+
+    await waitFor(() => {
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+    });
+    const exportUrl = recorded.find((r) => r.url.startsWith("/api/employees/export.csv"))?.url;
+    expect(exportUrl).toBe("/api/employees/export.csv?countryCode=IN");
+    click.mockRestore();
+  });
+
+  it("cannot export when nothing matches", async () => {
+    installFakeApi([
+      { method: "GET", path: "/api/reference", body: REFERENCE },
+      { method: "GET", path: "/api/employees", body: page([]) },
+      { method: "GET", path: "/api/analytics/band-violations", body: bandReport() },
+    ]);
+
+    renderAt("/employees", <DirectoryPage />);
+
+    await screen.findByText("No employees match these filters.");
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+  });
+});

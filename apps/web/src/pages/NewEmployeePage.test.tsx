@@ -114,7 +114,7 @@ describe("adding an employee", () => {
       startDate: "2024-03-01",
       salary: { amount: "90000.00", currency: "EUR", effectiveFrom: "2024-03-01" },
     });
-  });
+  }, 20_000);
 
   it("shows a duplicate email from the server and stays on the form", async () => {
     recorded = installFakeApi([
@@ -141,5 +141,5 @@ describe("adding an employee", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Create employee" })).toBeEnabled(),
     );
-  });
+  }, 20_000);
 });

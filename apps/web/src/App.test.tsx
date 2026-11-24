@@ -34,7 +34,7 @@ function fakeApi(): void {
       if (url.startsWith("/api/employees")) {
         return Promise.resolve(json({ items: [], total: 0, page: 1, pageSize: 1 }, 200));
       }
-      return Promise.resolve(json({}, 200));
+      return Promise.resolve(json({ error: { code: "NOT_STUBBED", message: "not stubbed" } }, 404));
     }),
   );
 }
