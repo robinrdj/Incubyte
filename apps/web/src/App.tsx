@@ -3,7 +3,8 @@ import { useAuth } from "./auth/AuthContext.js";
 import { AppLayout } from "./layout/AppLayout.js";
 import { LoginPage } from "./pages/LoginPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
-import { SectionPlaceholder } from "./pages/SectionPlaceholder.js";
+import { AnalyticsPage } from "./pages/AnalyticsPage.js";
+import { DataExchangePage } from "./pages/DataExchangePage.js";
 import { DirectoryPage } from "./pages/DirectoryPage.js";
 import { EmployeePage } from "./pages/EmployeePage.js";
 import { NewEmployeePage } from "./pages/NewEmployeePage.js";
@@ -22,24 +23,8 @@ export function App(): React.JSX.Element {
         <Route path="employees" element={<DirectoryPage />} />
         <Route path="employees/new" element={<NewEmployeePage />} />
         <Route path="employees/:id" element={<EmployeePage />} />
-        <Route
-          path="analytics"
-          element={
-            <SectionPlaceholder
-              title="Analytics"
-              description="Compensation analytics are being built."
-            />
-          }
-        />
-        <Route
-          path="data-exchange"
-          element={
-            <SectionPlaceholder
-              title="Import and export"
-              description="CSV import and export are being built."
-            />
-          }
-        />
+        <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="data-exchange" element={<DataExchangePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
