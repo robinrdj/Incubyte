@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_EMPLOYEE_COUNT, generateDataset, type SeedDataset } from "./dataset.js";
+import { namePoolFor } from "./names.js";
 import { SeededRandom } from "./random.js";
 
 /** Small size for the detailed checks; the full-size run is covered once below. */
@@ -192,5 +193,29 @@ describe("generateDataset: pay realism", () => {
     expect(full.employees).toHaveLength(DEFAULT_EMPLOYEE_COUNT);
     expect(new Set(full.employees.map((e) => e.employeeCode)).size).toBe(DEFAULT_EMPLOYEE_COUNT);
     expect(elapsed).toBeLessThan(5000);
+  });
+});
+
+describe("generateDataset: names", () => {
+  const full = generateDataset();
+
+  it("gives every employee a different full name", () => {
+    const names = new Set(full.employees.map((e) => `${e.firstName} ${e.lastName}`));
+    expect(names.size).toBe(full.employees.length);
+  });
+
+  it("does not let any surname dominate", () => {
+    const counts = new Map<string, number>();
+    for (const e of full.employees) counts.set(e.lastName, (counts.get(e.lastName) ?? 0) + 1);
+    const largest = Math.max(...counts.values());
+    expect(largest / full.employees.length).toBeLessThan(0.02);
+  });
+
+  it("draws each name from the pool for the employee's country", () => {
+    for (const e of full.employees.slice(0, 500)) {
+      const pool = namePoolFor(e.countryCode);
+      expect(pool.first).toContain(e.firstName);
+      expect(pool.last).toContain(e.lastName);
+    }
   });
 });

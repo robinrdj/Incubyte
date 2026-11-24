@@ -1,4 +1,5 @@
 import { SeededRandom } from "./random.js";
+import { namePoolFor, type NamePool } from "./names.js";
 
 /**
  * Deterministic seed data for the salary tool. Pure: no database, no clock, no environment.
@@ -85,71 +86,11 @@ const LEVELS: readonly { code: string; title: string; baseUsd: number; weight: n
   { code: "L6", title: "Director", baseUsd: 170_000, weight: 7 },
 ];
 
-const FIRST_NAMES = [
-  "Ada",
-  "Alan",
-  "Grace",
-  "Linus",
-  "Margaret",
-  "Donald",
-  "Barbara",
-  "Edsger",
-  "Frances",
-  "Ken",
-  "Dennis",
-  "Radia",
-  "Tim",
-  "Hedy",
-  "John",
-  "Katherine",
-  "Claude",
-  "Annie",
-  "Brian",
-  "Joan",
-  "Maria",
-  "Ravi",
-  "Priya",
-  "Ahmed",
-  "Lena",
-  "Mateo",
-  "Sofia",
-  "Kenji",
-  "Amara",
-  "Diego",
-];
-
-const LAST_NAMES = [
-  "Lovelace",
-  "Turing",
-  "Hopper",
-  "Torvalds",
-  "Hamilton",
-  "Knuth",
-  "Liskov",
-  "Dijkstra",
-  "Allen",
-  "Thompson",
-  "Ritchie",
-  "Perlman",
-  "Berners-Lee",
-  "Lamarr",
-  "McCarthy",
-  "Johnson",
-  "Shannon",
-  "Easley",
-  "Kernighan",
-  "Clarke",
-  "Garcia",
-  "Patel",
-  "Sharma",
-  "Khan",
-  "Müller",
-  "Rossi",
-  "Silva",
-  "Tanaka",
-  "Okafor",
-  "Novak",
-];
+/**
+ * How many times to redraw a name that is already taken before accepting a repeat. Real companies
+ * do have the odd two people with the same name, so a repeat is allowed once the pool runs dry.
+ */
+const NAME_ATTEMPTS = 25;
 
 export interface CountryRow {
   code: string;
@@ -289,12 +230,12 @@ export function generateDataset(options: DatasetOptions = {}): SeedDataset {
   }
 
   const employees: EmployeeRow[] = [];
+  const usedNames = new Set<string>();
   for (let n = 1; n <= employeeCount; n += 1) {
     const country = rng.weighted(COUNTRIES.map((c) => ({ value: c, weight: c.weight })));
     const department = rng.weighted(DEPARTMENTS.map((d) => ({ value: d, weight: d.weight })));
     const level = rng.weighted(LEVELS.map((l) => ({ value: l, weight: l.weight })));
-    const firstName = rng.pick(FIRST_NAMES);
-    const lastName = rng.pick(LAST_NAMES);
+    const { firstName, lastName } = pickName(rng, namePoolFor(country.code), usedNames);
 
     const startDate = addDays(
       EARLIEST_START,
@@ -349,6 +290,23 @@ export function generateDataset(options: DatasetOptions = {}): SeedDataset {
     employees,
   };
 }
+
+/** Draws a first and last name from the pool, avoiding full names that are already taken. */
+function pickName(
+  rng: SeededRandom,
+  pool: NamePool,
+  used: Set<string>,
+): { firstName: string; lastName: string } {
+  let name = { firstName: rng.pick(pool.first), lastName: rng.pick(pool.last) };
+  for (let attempt = 1; attempt < NAME_ATTEMPTS && used.has(fullName(name)); attempt += 1) {
+    name = { firstName: rng.pick(pool.first), lastName: rng.pick(pool.last) };
+  }
+  used.add(fullName(name));
+  return name;
+}
+
+const fullName = (name: { firstName: string; lastName: string }): string =>
+  `${name.firstName} ${name.lastName}`;
 
 /** Lower-cases a name and strips accents and punctuation, so it is safe in an email address. */
 function normalizeForEmail(name: string): string {
