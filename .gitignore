@@ -26,3 +26,9 @@ npm-debug.log*
 
 # Generated Prisma client (created by `prisma generate`)
 apps/api/src/generated/
+
+# AI agent skill files installed by tooling (prisma generate)
+.agents/
+**/.claude/skills
+.windsurf/
+skills-lock.json
