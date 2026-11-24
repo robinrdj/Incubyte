@@ -541,3 +541,44 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 
 - Maintaining FX rates and pay bands still has no screen or endpoint.
 - Production hosting: serve the web app from the API, or enable CORS for a separate host.
+
+---
+
+## 2026-11-24 — Stage 9b: Settings for FX rates and pay bands
+
+**User request:** "Give them default FX rates with a settings page to modify it. The same goes for pay bands." The user also asked where the backend API is, because the `backend/` folder has no index file. They decided to host the frontend and backend as separate applications.
+
+**Answer about the backend:** The root `backend/` and `frontend/` folders belong to a separate app of the user's and are not part of this project. The API is `apps/api`: `src/main.ts` is the entry point, `src/http/` holds the routes, and `src/services/` the database work. Stages 3–5 built it.
+
+**Design decisions:**
+
+- **The defaults come from the seed.** The seed already loaded rates for every salary currency on two dates and a band for every level in every country, at 90–110% of expected pay. The new work is the API and the screen to change them.
+- **FX rates stay dated.** Saving a rate for a new date adds a rate from that day on. The analytics use the latest rate on or before the date they report on, so a new rate never changes earlier figures. Saving a date that already has a rate replaces it, so a typing mistake can be corrected without leaving a wrong rate in the history.
+- **Rates that make no sense are refused.** USD always has rate 1, so a USD rate is refused. So is a currency no country uses, which would only be a typo. A rate must be positive, with up to 8 decimals to match the column.
+- **Bands use the country's currency.** That matches the seed and the band report, and a band needs no FX rate until it is compared in USD. The domain rule `assertValidBand` (minimum above zero, maximum at or above it) is reused, so the API and the band report apply the same rule.
+- **Missing data is shown.** A currency with no rate gets a "No rate" badge, because the analytics cannot convert it. A level with no band in a country is marked "Not set", and saving it creates the band.
+- **No audit trail for settings yet.** The audit table is tied to an employee. A settings history would need its own table. FX rates keep their history anyway, because they are dated. Pay band changes are not recorded, which is listed as a known gap.
+- **Separate hosting** is recorded in `docs/plan.md`. Stage 10 adds a CORS allow-list and a configurable API base URL.
+
+**What was built:**
+
+- Shared contract: `FxRateDto`, `FxRateListDto`, `SaveFxRateRequest`, `PayBandDto`, `SavePayBandRequest`.
+- API: `SettingsService`, `settings-routes.ts`, and the zod schemas. The endpoints are `GET` and `PUT /api/settings/fx-rates`, `GET /api/settings/pay-bands`, and `PUT /api/settings/pay-bands/:countryCode/:levelCode`.
+- Web: `pages/SettingsPage.tsx`, with "Exchange rates" and "Pay bands" tabs, four client methods, a nav link, and a route.
+
+**Verification:**
+
+- API integration tests: 92 pass (15 new). The new tests include these:
+  - A new EUR rate changes the median for a later date and leaves an earlier date unchanged: 99,000 then 108,000 USD.
+  - Saving the same date corrects the rate rather than adding a second one.
+  - A tightened band makes the employee show as below band in the report.
+  - Bad rates and bands, an unknown country or level, and a missing login are all refused.
+- Web tests: 77 pass (10 new). They cover the latest rates and the "No rate" flag, saving a rate, the rate history, client-side validation, a server refusal, the band table and "Not set", saving a band, max below min, Save disabled until a change, and switching country.
+- `npm run check` passes. Against the seeded local database, the API returned 14 FX rates and 60 pay bands, and 401 without a login.
+
+**Problems and fixes during the stage:**
+
+- After a save, a band row compared its values with the list it was given. The "Saved" note therefore depended on the reload, and saving `90000` over `90000.00` would have left the button spinning. The row now remembers what it last saved and always clears its busy state.
+- A test looked up the searchable Country select by the wrong role. Fixed.
+
+**Not verified:** in a real browser, as before.

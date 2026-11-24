@@ -35,3 +35,8 @@ Work is organized into three phases and twelve numbered stages. Each stage ends 
 - **Component library:** Mantine. It has built-in data table, form, and chart support.
 - **Test runner:** Vitest for unit and component tests, with a real PostgreSQL instance for integration tests.
 - **Auth:** HTTP basic auth via environment variables, as set in the requirements.
+
+## Decisions made during delivery
+
+- **Settings are maintained in the app (2026-11-24).** The seed loads default FX rates and pay bands. HR changes them on a Settings page, backed by `/api/settings/*` endpoints. FX rates stay dated: a new date adds a rate, and the same date corrects one.
+- **Separate hosting (2026-11-24).** The web app and the API are deployed as two applications. Stage 10 adds a CORS allow-list on the API and a configurable API base URL in the web app.
