@@ -675,3 +675,24 @@ The Stage 2 percentile still matches `percentile_cont`, so the two approaches ag
 - **Skeletons.** Both Settings tabs showed a bare spinner. They now show placeholders shaped like their content. The rates tab shows its table rows and the form. The pay bands tab shows the country picker and one row per level.
 - **Root cause of the repeated loader.** Mantine 9 hides inactive tabs with React's `<Activity>`. That runs a tab's effects again when it reappears, so every switch back refetched its data and showed the loader again. With `keepMountedMode="display-none"`, both tabs load once, the pay bands load in the background, and switching is instant.
 - **Tests:** 2 new (the rates skeleton, and no refetch when switching back), 91 web tests in total. A test of the request order found the refetch: switching tabs requested `/api/settings/fx-rates` a second time. `npm run check` passes.
+
+---
+
+## 2026-11-24 — Stage 9f: New font and design refinements
+
+**User request:** "Improve the overall design and style a little, and use a different font."
+
+**Design decisions:**
+
+- **Font.** Inter is replaced with Plus Jakarta Sans, a geometric typeface that stays readable at small sizes and has distinctive numerals. It is bundled through Fontsource, with no CDN. Table cells and badges use tabular figures, so amounts line up in columns.
+- **Colour.**
+  - A custom indigo-violet accent replaces Mantine's stock indigo.
+  - Dark mode uses slightly blue greys.
+  - Borders are lighter in light mode, and table headers are tinted.
+  - Every hard-coded indigo now points at the accent.
+- **Depth and type.** Softer layered shadows, bolder headings with tighter letter-spacing, semi-bold buttons, and badges in sentence case rather than all capitals.
+- **Layout.** The header is translucent and blurs what scrolls under it. The signed-in account moved from the header to a card at the foot of the navigation, so it also shows on phones, where the header had hidden it. The sign-in brand panel has a soft highlight.
+
+**Verification:** 91 web tests pass. One test caught the email shown twice (header and navigation), so the header copy was removed. `npm run check` passes, and the production build bundles the font.
+
+**Not verified:** in a real browser.
