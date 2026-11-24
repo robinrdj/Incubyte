@@ -84,151 +84,156 @@ export function LoginPage({
 
   return (
     <Box className="auth-backdrop">
-      <Group justify="space-between" p="lg" pos="relative">
+      <Group justify="space-between" px="lg" py="md" pos="relative">
         <BrandMark />
         <ColorSchemeToggle />
       </Group>
 
-      <SimpleGrid
-        cols={{ base: 1, md: 2 }}
-        spacing={64}
-        maw={1120}
-        mx="auto"
-        px="lg"
-        py={{ base: "xl", md: 48 }}
+      <Box
         pos="relative"
-        style={{ alignItems: "center" }}
+        px="lg"
+        pb="md"
+        style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", overflowY: "auto" }}
       >
-        <Stack gap="xl" visibleFrom="md">
-          <Badge size="lg" leftSection={<IconSparkles size={14} />} w="fit-content">
-            Built for HR teams
-          </Badge>
-          <Title order={1} fz={44} lh={1.1} style={{ letterSpacing: "-0.03em" }}>
-            Every salary, every country,{" "}
-            <Text
-              span
-              inherit
-              variant="gradient"
-              gradient={{ from: "brand.6", to: "violet.6", deg: 90 }}
-            >
-              one clear picture.
+        <SimpleGrid
+          cols={{ base: 1, md: 2 }}
+          spacing={56}
+          maw={1120}
+          w="100%"
+          mx="auto"
+          style={{ alignItems: "center" }}
+        >
+          <Stack gap="lg" visibleFrom="md">
+            <Badge size="lg" leftSection={<IconSparkles size={14} />} w="fit-content">
+              Built for HR teams
+            </Badge>
+            <Title order={1} fz={40} lh={1.1} style={{ letterSpacing: "-0.03em" }}>
+              Every salary, every country,{" "}
+              <Text
+                span
+                inherit
+                variant="gradient"
+                gradient={{ from: "brand.6", to: "violet.6", deg: 90 }}
+              >
+                one clear picture.
+              </Text>
+            </Title>
+            <Text size="md" c="dimmed" maw={480}>
+              Keep ACME&apos;s pay history, pay bands, and exchange rates in one place, and answer
+              how the company pays people in seconds.
             </Text>
-          </Title>
-          <Text size="lg" c="dimmed" maw={480}>
-            Keep ACME&apos;s pay history, pay bands, and exchange rates in one place, and answer how
-            the company pays people in seconds.
-          </Text>
-          <Stack gap="xs">
-            {HIGHLIGHTS.map((text) => (
-              <Group key={text} gap="sm" wrap="nowrap">
-                <IconCircleCheck
-                  size={20}
-                  color="var(--mantine-color-brand-6)"
-                  aria-hidden="true"
-                />
-                <Text size="sm">{text}</Text>
-              </Group>
-            ))}
+            <Stack gap="xs">
+              {HIGHLIGHTS.map((text) => (
+                <Group key={text} gap="sm" wrap="nowrap">
+                  <IconCircleCheck
+                    size={20}
+                    color="var(--mantine-color-brand-6)"
+                    aria-hidden="true"
+                  />
+                  <Text size="sm">{text}</Text>
+                </Group>
+              ))}
+            </Stack>
+            <ProductPreview />
           </Stack>
-          <ProductPreview />
-        </Stack>
 
-        <Stack gap="md" maw={440} w="100%" mx="auto">
-          <Paper withBorder shadow="lg" radius="xl" p={{ base: "lg", sm: 36 }}>
-            <form
-              aria-label="Sign in"
-              noValidate
-              onSubmit={(event) => {
-                event.preventDefault();
-                void submit({ email, password });
-              }}
-            >
-              <Stack gap="md">
-                <div>
-                  <Title order={2}>Sign in</Title>
-                  <Text c="dimmed" size="sm" mt={4}>
-                    Use your HR account to continue.
-                  </Text>
-                </div>
-                {error !== null && (
-                  <Alert
-                    color="red"
-                    role="alert"
-                    variant="light"
-                    icon={<IconAlertCircle size={18} />}
-                  >
-                    {error}
-                  </Alert>
-                )}
-                <TextInput
-                  label="Email"
-                  type="email"
-                  placeholder="you@company.com"
-                  autoComplete="email"
-                  leftSection={<IconAt size={16} />}
-                  required
-                  value={email}
-                  error={emailError}
-                  onChange={(event) => {
-                    setEmail(event.currentTarget.value);
-                  }}
-                />
-                <PasswordInput
-                  label="Password"
-                  autoComplete="current-password"
-                  leftSection={<IconLock size={16} />}
-                  required
-                  value={password}
-                  onChange={(event) => {
-                    setPassword(event.currentTarget.value);
-                  }}
-                />
-                <Button type="submit" loading={submitting} fullWidth size="md" mt="xs">
-                  Sign in
-                </Button>
-              </Stack>
-            </form>
-
-            {demo !== null && (
-              <>
-                <Divider label="or try the demo" labelPosition="center" my="lg" />
-                <Box aria-label="Demo account">
-                  <Stack gap={6}>
-                    <Credential label="Email" value={demo.email} />
-                    <Credential label="Password" value={demo.password} />
-                  </Stack>
-                  <Button
-                    variant="light"
-                    fullWidth
-                    mt="md"
-                    disabled={submitting}
-                    onClick={() => {
-                      setEmail(demo.email);
-                      setPassword(demo.password);
-                      void submit(demo);
+          <Stack gap="md" maw={440} w="100%" mx="auto">
+            <Paper withBorder shadow="lg" radius="md" p={{ base: "lg", sm: 32 }}>
+              <form
+                aria-label="Sign in"
+                noValidate
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submit({ email, password });
+                }}
+              >
+                <Stack gap="md">
+                  <div>
+                    <Title order={2}>Sign in</Title>
+                    <Text c="dimmed" size="sm" mt={4}>
+                      Use your HR account to continue.
+                    </Text>
+                  </div>
+                  {error !== null && (
+                    <Alert
+                      color="red"
+                      role="alert"
+                      variant="light"
+                      icon={<IconAlertCircle size={18} />}
+                    >
+                      {error}
+                    </Alert>
+                  )}
+                  <TextInput
+                    label="Email"
+                    type="email"
+                    placeholder="you@company.com"
+                    autoComplete="email"
+                    leftSection={<IconAt size={16} />}
+                    required
+                    value={email}
+                    error={emailError}
+                    onChange={(event) => {
+                      setEmail(event.currentTarget.value);
                     }}
-                  >
-                    Sign in with the demo account
+                  />
+                  <PasswordInput
+                    label="Password"
+                    autoComplete="current-password"
+                    leftSection={<IconLock size={16} />}
+                    required
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.currentTarget.value);
+                    }}
+                  />
+                  <Button type="submit" loading={submitting} fullWidth size="md" mt="xs">
+                    Sign in
                   </Button>
-                  <Text size="xs" c="dimmed" ta="center" mt="xs">
-                    The demo data is generated, not real salaries.
-                  </Text>
-                </Box>
-              </>
-            )}
-          </Paper>
-          <Text size="xs" c="dimmed" ta="center">
-            Need an account? Ask a colleague to add you under HR users.
-          </Text>
-        </Stack>
-      </SimpleGrid>
+                </Stack>
+              </form>
+
+              {demo !== null && (
+                <>
+                  <Divider label="or try the demo" labelPosition="center" my="md" />
+                  <Box aria-label="Demo account">
+                    <Stack gap={6}>
+                      <Credential label="Email" value={demo.email} />
+                      <Credential label="Password" value={demo.password} />
+                    </Stack>
+                    <Button
+                      variant="light"
+                      fullWidth
+                      mt="md"
+                      disabled={submitting}
+                      onClick={() => {
+                        setEmail(demo.email);
+                        setPassword(demo.password);
+                        void submit(demo);
+                      }}
+                    >
+                      Sign in with the demo account
+                    </Button>
+                    <Text size="xs" c="dimmed" ta="center" mt="xs">
+                      The demo data is generated, not real salaries.
+                    </Text>
+                  </Box>
+                </>
+              )}
+            </Paper>
+            <Text size="xs" c="dimmed" ta="center">
+              Need an account? Ask a colleague to add you under HR users.
+            </Text>
+          </Stack>
+        </SimpleGrid>
+      </Box>
     </Box>
   );
 }
 
 function ProductPreview(): React.JSX.Element {
   return (
-    <Paper withBorder radius="lg" p="lg" shadow="md" maw={480} aria-hidden="true">
+    <Paper withBorder radius="md" p="md" shadow="md" maw={480} aria-hidden="true">
       <Group justify="space-between" mb="md">
         <Text size="sm" fw={600}>
           Median base pay by country
@@ -258,7 +263,7 @@ function ProductPreview(): React.JSX.Element {
           </Group>
         ))}
       </Stack>
-      <SimpleGrid cols={3} mt="lg" spacing="sm">
+      <SimpleGrid cols={3} mt="md" spacing="sm">
         <PreviewStat label="Employees" value="10,000" />
         <PreviewStat label="Countries" value="10" />
         <PreviewStat label="Outside band" value="26%" />

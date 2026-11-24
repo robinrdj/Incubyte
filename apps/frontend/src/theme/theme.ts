@@ -49,6 +49,7 @@ export const theme = createTheme({
   primaryColor: "brand",
   primaryShade: { light: 6, dark: 5 },
   defaultRadius: "md",
+  radius: { xs: "2px", sm: "4px", md: "7px", lg: "13px", xl: "26px" },
   fontFamily: FONT,
   headings: {
     fontFamily: FONT,

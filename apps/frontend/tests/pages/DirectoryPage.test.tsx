@@ -31,6 +31,7 @@ function directoryRequests(): URL[] {
 
 beforeEach(() => {
   window.sessionStorage.clear();
+  window.localStorage.clear();
   signedIn();
 });
 
@@ -298,6 +299,45 @@ describe("pay band badges", () => {
       expect(new URL(request?.url ?? "", "http://x").searchParams.get("employeeIds")).toBe(
         `${ADA.id},${GRACE.id}`,
       );
+    });
+  });
+});
+
+describe("layout", () => {
+  beforeEach(() => {
+    installFakeApi([
+      { method: "GET", path: "/api/reference", body: REFERENCE },
+      { method: "GET", path: "/api/employees", body: page([ADA, GRACE]) },
+      { method: "GET", path: "/api/analytics/band-violations", body: bandReport() },
+    ]);
+  });
+
+  it("shows a table by default and switches to cards", async () => {
+    const user = userEvent.setup();
+    renderAt("/employees", <DirectoryPage />);
+    await screen.findByRole("table", { name: "Employees" });
+
+    await user.click(screen.getByText("Card view"));
+
+    expect(await screen.findByRole("article", { name: "Ada Lovelace" })).toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "Grace Hopper" })).toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Employees" })).not.toBeInTheDocument();
+  });
+
+  it("remembers the chosen layout", async () => {
+    window.localStorage.setItem("salary.directory-view", "cards");
+
+    renderAt("/employees", <DirectoryPage />);
+
+    expect(await screen.findByRole("article", { name: "Ada Lovelace" })).toBeInTheDocument();
+  });
+
+  it("shows a dash rather than an empty cell for someone within their band", async () => {
+    renderAt("/employees", <DirectoryPage />);
+    const table = await screen.findByRole("table", { name: "Employees" });
+
+    await waitFor(() => {
+      expect(within(table).getAllByLabelText("Within band")).toHaveLength(2);
     });
   });
 });

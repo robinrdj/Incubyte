@@ -1,35 +1,42 @@
 import {
   Alert,
-  Anchor,
-  Avatar,
-  Badge,
   Box,
   Button,
   Card,
+  Center,
   Group,
   Pagination,
+  SegmentedControl,
   Select,
   SimpleGrid,
   Skeleton,
   Stack,
-  Table,
   Text,
   TextInput,
+  Tooltip,
+  VisuallyHidden,
 } from "@mantine/core";
-import { IconDownload, IconPlus, IconSearch, IconUserSearch, IconUsers } from "@tabler/icons-react";
+import {
+  IconDownload,
+  IconLayoutGrid,
+  IconLayoutList,
+  IconPlus,
+  IconSearch,
+  IconUserSearch,
+  IconUsers,
+} from "@tabler/icons-react";
 import { useDebouncedValue } from "@mantine/hooks";
 import type { EmployeeDto, EmploymentStatus } from "@salary/shared";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import type { EmployeeListQuery } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.js";
-import { BandBadge } from "../components/BandBadge.js";
+import { EmployeeCards } from "../components/employees/EmployeeCards.js";
+import { EmployeeTable } from "../components/employees/EmployeeTable.js";
 import { PageHeader } from "../components/PageHeader.js";
 import { useAsync } from "../hooks/useAsync.js";
-import { useRowLink } from "../hooks/useRowLink.js";
 import { downloadCsv } from "../lib/download.js";
 import { errorMessage } from "../lib/errors.js";
-import { formatMoney } from "../lib/format.js";
 
 export const PAGE_SIZE = 25;
 
@@ -51,7 +58,6 @@ export function DirectoryPage(): React.JSX.Element {
   const [status, setStatus] = useState<string>("");
   const [page, setPage] = useState(1);
 
-  const rowLink = useRowLink();
   const reference = useAsync(() => api.reference(), []);
 
   /** The filters as the list applies them. The export uses the same object, so they always match. */
@@ -96,6 +102,8 @@ export function DirectoryPage(): React.JSX.Element {
     () => new Map((bands.data?.items ?? []).map((item) => [item.employeeId, item.position])),
     [bands.data],
   );
+  const bandFor = (employeeId: string) => bandByEmployee.get(employeeId);
+  const [view, chooseView] = useDirectoryView();
 
   const rows: EmployeeDto[] = directory.data?.items ?? [];
   const total = directory.data?.total ?? 0;
@@ -218,6 +226,51 @@ export function DirectoryPage(): React.JSX.Element {
           </Alert>
         )}
 
+        {total > 0 && (
+          <Group
+            justify="space-between"
+            px="md"
+            py="xs"
+            style={{ borderBottom: "1px solid var(--mantine-color-default-border)" }}
+          >
+            <Text size="sm" c="dimmed">
+              {total.toLocaleString("en-US")} {total === 1 ? "employee" : "employees"}
+            </Text>
+            <SegmentedControl
+              size="xs"
+              value={view}
+              onChange={(value) => {
+                chooseView(value);
+              }}
+              aria-label="Layout"
+              data={[
+                {
+                  value: "table",
+                  label: (
+                    <Tooltip label="Table view" withArrow>
+                      <Center>
+                        <IconLayoutList size={16} />
+                        <VisuallyHidden>Table view</VisuallyHidden>
+                      </Center>
+                    </Tooltip>
+                  ),
+                },
+                {
+                  value: "cards",
+                  label: (
+                    <Tooltip label="Card view" withArrow>
+                      <Center>
+                        <IconLayoutGrid size={16} />
+                        <VisuallyHidden>Card view</VisuallyHidden>
+                      </Center>
+                    </Tooltip>
+                  ),
+                },
+              ]}
+            />
+          </Group>
+        )}
+
         {directory.loading && directory.data === undefined ? (
           <Stack gap="sm" p="md" aria-busy="true" aria-label="Loading employees">
             {Array.from({ length: 8 }, (_, index) => (
@@ -238,88 +291,16 @@ export function DirectoryPage(): React.JSX.Element {
             </Text>
           </Stack>
         ) : (
-          <Table.ScrollContainer
-            minWidth={860}
+          <Box
             aria-busy={refreshing}
             style={{ opacity: refreshing ? 0.55 : 1, transition: "opacity 150ms ease" }}
           >
-            <Table aria-label="Employees" horizontalSpacing="md">
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Employee</Table.Th>
-                  <Table.Th>Code</Table.Th>
-                  <Table.Th>Job title</Table.Th>
-                  <Table.Th>Country</Table.Th>
-                  <Table.Th>Department</Table.Th>
-                  <Table.Th>Level</Table.Th>
-                  <Table.Th ta="right">Current salary</Table.Th>
-                  <Table.Th>Pay band</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {rows.map((employee) => (
-                  <Table.Tr key={employee.id} {...rowLink(`/employees/${employee.id}`)}>
-                    <Table.Td>
-                      <Group gap="sm" wrap="nowrap">
-                        <Avatar
-                          size={32}
-                          radius="xl"
-                          color="initials"
-                          name={`${employee.firstName} ${employee.lastName}`}
-                        />
-                        <div style={{ minWidth: 0 }}>
-                          <Group gap={6} wrap="nowrap">
-                            <Anchor
-                              component={Link}
-                              to={`/employees/${employee.id}`}
-                              size="sm"
-                              fw={600}
-                              c="var(--mantine-color-text)"
-                              truncate
-                            >
-                              {employee.firstName} {employee.lastName}
-                            </Anchor>
-                            {employee.status === "LEAVING" && (
-                              <Badge size="xs" color="gray">
-                                Leaving
-                              </Badge>
-                            )}
-                          </Group>
-                          <Text size="xs" c="dimmed" truncate>
-                            {employee.email}
-                          </Text>
-                        </div>
-                      </Group>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" ff="monospace" c="dimmed">
-                        {employee.employeeCode}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>{employee.jobTitle}</Table.Td>
-                    <Table.Td>{employee.country.name}</Table.Td>
-                    <Table.Td>{employee.department.name}</Table.Td>
-                    <Table.Td>
-                      <Badge color="brand" variant="outline" size="sm">
-                        {employee.level.code}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td ta="right" fw={500}>
-                      {employee.currentSalary
-                        ? formatMoney(
-                            employee.currentSalary.amount,
-                            employee.currentSalary.currency,
-                          )
-                        : "—"}
-                    </Table.Td>
-                    <Table.Td>
-                      <BandBadge position={bandByEmployee.get(employee.id)} />
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
+            {view === "table" ? (
+              <EmployeeTable employees={rows} bandFor={bandFor} bandsLoading={bands.loading} />
+            ) : (
+              <EmployeeCards employees={rows} bandFor={bandFor} bandsLoading={bands.loading} />
+            )}
+          </Box>
         )}
 
         {total > 0 && (
@@ -341,4 +322,27 @@ export function DirectoryPage(): React.JSX.Element {
       </Card>
     </Stack>
   );
+}
+
+type DirectoryView = "table" | "cards";
+const VIEW_STORAGE_KEY = "salary.directory-view";
+
+/** The table is the default; the chosen layout is remembered in this browser. */
+function useDirectoryView(): [DirectoryView, (view: DirectoryView) => void] {
+  const [view, setView] = useState<DirectoryView>(() => {
+    try {
+      return window.localStorage.getItem(VIEW_STORAGE_KEY) === "cards" ? "cards" : "table";
+    } catch {
+      return "table";
+    }
+  });
+  const choose = (next: DirectoryView): void => {
+    setView(next);
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, next);
+    } catch {
+      // The choice then lasts until the page reloads.
+    }
+  };
+  return [view, choose];
 }

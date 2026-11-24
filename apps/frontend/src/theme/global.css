@@ -28,7 +28,10 @@ h3 {
 /* Sign-in page backdrop: two soft glows over a faint dot grid. */
 .auth-backdrop {
   position: relative;
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background:
     radial-gradient(48rem 32rem at 8% -10%, rgb(91 97 239 / 0.22), transparent 70%),
