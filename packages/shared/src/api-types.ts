@@ -199,3 +199,30 @@ export interface SavePayBandRequest {
   minAmount: string;
   maxAmount: string;
 }
+
+export interface HrUserDto {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  /** Email of the HR user who added this account; null for the first account. */
+  createdBy: string | null;
+}
+
+export interface SignInRequest {
+  email: string;
+  password: string;
+}
+
+export interface SessionDto {
+  /** Sent back as `Authorization: Bearer <token>`. */
+  token: string;
+  expiresAt: string;
+  user: HrUserDto;
+}
+
+export interface CreateHrUserRequest {
+  name: string;
+  email: string;
+  password: string;
+}

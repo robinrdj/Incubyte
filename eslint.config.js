@@ -10,7 +10,7 @@ export default tseslint.config(
       "**/coverage/**",
       "**/node_modules/**",
       "**/src/generated/**",
-      // Pre-existing folders outside this monorepo; not yet part of the submission.
+      // Root-level folders from another project; not part of this repository.
       "backend/**",
       "frontend/**",
     ],
@@ -27,7 +27,7 @@ export default tseslint.config(
   },
   {
     rules: {
-      // Underscore-prefixed names mark intentionally unused parameters (e.g. Express error handlers).
+      // A leading underscore marks a parameter that must exist but is unused.
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
@@ -41,9 +41,8 @@ export default tseslint.config(
     },
   },
   {
-    // supertest response bodies are typed `any`. Tests assert on them directly, so the
-    // unsafe-any rules are relaxed for integration test folders only.
-    files: ["**/test/**/*.ts"],
+    // supertest response bodies are typed `any`, and the tests assert on them directly.
+    files: ["**/tests/integration/**/*.ts"],
     rules: {
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
