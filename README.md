@@ -7,15 +7,16 @@ A web app that replaces the Excel workbooks ACME's HR team uses to manage salari
 
 ## Documentation
 
-| Document                                           | What it covers                                                            |
-| -------------------------------------------------- | ------------------------------------------------------------------------- |
-| [Requirements](docs/requirements.md)               | Goal, scope, features, and what is deliberately left out, and why         |
-| [Plan](docs/plan.md)                               | The twelve delivery stages and the decisions made along the way           |
-| [Architecture](docs/architecture.md)               | Diagram, key design decisions, trade-offs, and performance                |
-| [Development summary](docs/development-summary.md) | How the app was built with an AI agent, in two pages                      |
-| [Design history](docs/design-history.md)           | Each visual design and the commit to restore it                           |
-| [Interaction log](docs/interaction-log.md)         | The full, stage-by-stage log of requests, decisions, and fixes            |
-| [PDFs](docs/pdf/)                                  | PDF copies of the requirements, architecture, summary, and design history |
+| Document                                                 | What it covers                                                                                       |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [Requirements](docs/requirements.md)                     | Goal, scope, features, and what is deliberately left out, and why                                    |
+| [Plan](docs/plan.md)                                     | The twelve delivery stages and the decisions made along the way                                      |
+| [Architecture](docs/architecture.md)                     | Diagram, key design decisions, trade-offs, and performance                                           |
+| [AI development summary](docs/AI-development-summary.md) | How the app was built with an AI agent, in two pages                                                 |
+| [AI prompts](docs/ai-prompts.md)                         | The instructions given to the AI agent, stage by stage                                               |
+| [Design history](docs/design-history.md)                 | Each visual design and the commit to restore it                                                      |
+| [Interaction log](docs/interaction-log.md)               | The full, stage-by-stage log of requests, decisions, and fixes                                       |
+| [PDFs](docs/pdf/)                                        | PDF copies of the requirements, architecture, AI development summary, AI prompts, and design history |
 
 ## What it does
 

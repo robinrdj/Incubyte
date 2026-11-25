@@ -862,7 +862,9 @@ The directory and every employee profile downloaded the whole out-of-band report
 **User request:** Update the README for the renamed folders, summarise the conversation in a one-to-two-page document, and provide PDFs of the summary, design history, and requirements for the submission email.
 
 - **README rewritten** for the current app: live links first, then features, stack, the `apps/backend` and `apps/frontend` layout with `tests/` folders, running locally, tests, the API, the CSV format, and deployment.
-- **New `docs/development-summary.md`:** two pages on the approach, timeline, how AI was used (who decided what, and how the output was checked), and quality practices.
+- **New `docs/AI-development-summary.md`** (first named `development-summary.md`): two pages on the approach, timeline, how AI was used (who decided what, and how the output was checked), and quality practices.
 - **New `docs/architecture.md`:** a system diagram, key decisions with their trade-offs, measured performance, and known gaps. This covers the architecture, trade-off, and performance artifacts the brief lists.
 - **`docs/requirements.md`** keeps its original text, written before building, and gains a dated "Changes during delivery" section: HR accounts and sessions, settings, the same-date salary correction, and where analytics are computed.
 - **PDFs in `docs/pdf/`:** requirements, development summary, architecture, and design history. Each Markdown file is rendered to styled HTML with `marked` and printed with headless Chrome (Python was not available). Each PDF was checked by reading it back: the summary is 2 pages, and the diagram and tables render cleanly.
+
+**Follow-up:** the summary was renamed `AI-development-summary` (Markdown and PDF). A new `docs/ai-prompts.md` and its PDF record the standing instructions and the prompts by phase, quoted close to verbatim, each with what followed. The PDF styling was tightened so the requirements and design history each fit in 2 pages.

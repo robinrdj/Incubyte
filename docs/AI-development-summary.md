@@ -1,4 +1,4 @@
-# Development Summary
+# AI Development Summary
 
 How the Salary Management app was built, condensed from the stage-by-stage [interaction log](interaction-log.md). It was built in three days (23–25 November 2026) by one developer working with an AI coding agent (Claude Code).
 
